@@ -3,7 +3,7 @@
 	"id": "mobdefenders",
 	"version": "${version}",
 	"name": "mobdefenders",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Player-friendly defenders and configurable guard spawners.",
 	"authors": [
 		"Me!"
 	],
@@ -15,6 +15,9 @@
 	"icon": "assets/mobdefenders/icon.png",
 	"environment": "*",
 	"entrypoints": {
+		"client": [
+			"net.amemah.mobdefenders.client.MobdefendersClient"
+		],
 		"main": [
 			{
 				"value": "net.amemah.mobdefenders.Mobdefenders",

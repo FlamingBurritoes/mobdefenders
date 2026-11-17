@@ -19,6 +19,12 @@ fabricApi {
 		client = true
 		modId = "mobdefenders"
 	}
+	configureTests {
+		createSourceSet = true
+		modId = "mobdefenders_test"
+		enableGameTests = true
+		enableClientGameTests = false
+	}
 }
 
 dependencies {
@@ -29,6 +35,12 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     implementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+	testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.4'
+}
+
+tasks.withType(Test).configureEach {
+	useJUnitPlatform()
 }
 
 processResources {

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "mobdefenders_test",
+  "version": "1.0.0",
+  "name": "Mob Defenders server tests",
+  "environment": "server",
+  "entrypoints": {
+    "fabric-gametest": ["net.amemah.mobdefenders.ZombieSpawnerGameTests"]
+  },
+  "depends": {"mobdefenders": "*", "fabric-gametest-api-v1": "*"}
+}

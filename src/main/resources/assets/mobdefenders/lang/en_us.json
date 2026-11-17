@@ -1,0 +1,8 @@
+{
+  "block.mobdefenders.zombie_spawner": "Zombie Spawner",
+  "block.mobdefenders.copper_reinforced_planks": "Copper Reinforced Planks",
+  "entity.mobdefenders.zombie_ally": "Zombie Ally",
+  "gui.mobdefenders.guard_type": "Guard Type:",
+  "gui.mobdefenders.standing": "Standing",
+  "gui.mobdefenders.wander": "Wander"
+}

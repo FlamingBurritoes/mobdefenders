@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": ["CCC", "CWC", "CCC"],
+  "key": {"C": "minecraft:copper_ingot", "W": "minecraft:oak_planks"},
+  "result": {"id": "mobdefenders:copper_reinforced_planks", "count": 1}
+}
