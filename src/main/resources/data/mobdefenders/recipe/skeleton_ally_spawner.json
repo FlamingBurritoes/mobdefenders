@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["BAB", "ACA", "BAB"],
+  "key": {"B": "minecraft:bone", "A": "minecraft:arrow", "C": "mobdefenders:copper_reinforced_planks"},
+  "result": {"id": "mobdefenders:skeleton_ally_spawner", "count": 1}
+}

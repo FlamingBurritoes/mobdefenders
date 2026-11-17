@@ -1,6 +1,6 @@
 	package net.amemah.mobdefenders.mixin;
 
-import net.amemah.mobdefenders.entity.ZombieAlly;
+import net.amemah.mobdefenders.entity.Defender;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.animal.golem.AbstractGolem;
@@ -15,10 +15,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class FriendlyGolemMixin {
 	@Inject(method = "canAttack(Lnet/minecraft/world/entity/LivingEntity;)Z", at = @At("HEAD"), cancellable = true)
 	private void mobdefenders$excludeAlly(LivingEntity target, CallbackInfoReturnable<Boolean> cir) {
-		if ((Object) this instanceof AbstractGolem && target instanceof ZombieAlly) cir.setReturnValue(false);
+		if ((Object) this instanceof AbstractGolem && target instanceof Defender) cir.setReturnValue(false);
 	}
 	@Inject(method = "setTarget", at = @At("HEAD"), cancellable = true)
 	private void mobdefenders$preventContactAggression(LivingEntity target, CallbackInfo ci) {
-		if ((Object) this instanceof AbstractGolem && target instanceof ZombieAlly) ci.cancel();
+		if ((Object) this instanceof AbstractGolem && target instanceof Defender) ci.cancel();
 	}
 }

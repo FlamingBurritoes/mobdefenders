@@ -1,8 +1,8 @@
 # Mob Defenders
 
-Player-friendly zombie guards for Fabric Minecraft 26.1.2. Craft and place a Zombie Spawner, then right-click to select **Standing** or **Wander**. Each source maintains one ally.
+Player-friendly zombie, skeleton and spider guards for Fabric Minecraft 26.1.2. Craft and place an Ally Spawner, then right-click to select **Standing** or **Wander**. Each source maintains one ally, with a 45-second initial wait, 90-second replacement timer and safe 12-block recall.
 
-See [MOD_FILES.md](MOD_FILES.md) for gameplay rules, configuration, recipes, file inventory, supplied-model editing instructions and the ongoing change log. Uses the supplied Zombie Ally, Zombie Spawner and Copper Reinforced Planks art with vanilla zombie animation.
+See [MOD_FILES.md](MOD_FILES.md) for gameplay rules, configuration, recipes, file inventory, supplied-model editing instructions and the ongoing change log. Uses the supplied art with vanilla entity animation. Defenders are sunlight-safe and fight monsters other than Creepers; skeleton arrows avoid friendly fire. All allies pause 3–5 seconds between patrol walks.
 
 ## Setup
 

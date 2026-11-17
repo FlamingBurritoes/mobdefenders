@@ -1,5 +1,0 @@
-{
-  "type": "minecraft:block",
-  "pools": [{"rolls": 1, "entries": [{"type": "minecraft:item", "name": "mobdefenders:zombie_spawner"}],
-    "conditions": [{"condition": "minecraft:survives_explosion"}]}]
-}

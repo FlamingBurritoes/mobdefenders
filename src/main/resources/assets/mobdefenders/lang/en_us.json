@@ -1,7 +1,11 @@
 {
-  "block.mobdefenders.zombie_spawner": "Zombie Spawner",
+  "block.mobdefenders.zombie_ally_spawner": "Zombie Ally Spawner",
+  "block.mobdefenders.skeleton_ally_spawner": "Skeleton Ally Spawner",
+  "block.mobdefenders.spider_ally_spawner": "Spider Ally Spawner",
   "block.mobdefenders.copper_reinforced_planks": "Copper Reinforced Planks",
   "entity.mobdefenders.zombie_ally": "Zombie Ally",
+  "entity.mobdefenders.skeleton_ally": "Skeleton Ally",
+  "entity.mobdefenders.spider_ally": "Spider Ally",
   "gui.mobdefenders.guard_type": "Guard Type:",
   "gui.mobdefenders.standing": "Standing",
   "gui.mobdefenders.wander": "Wander"

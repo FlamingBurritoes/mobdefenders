@@ -10,6 +10,10 @@ public final class MobdefendersClient implements ClientModInitializer {
 	@Override public void onInitializeClient() {
 		ModelLayerRegistry.registerModelLayer(ZombieAllyModel.LAYER, ZombieAllyModel::createBodyLayer);
 		EntityRendererRegistry.register(ModContent.ZOMBIE_ALLY, ZombieAllyRenderer::new);
-		MenuScreens.register(ModContent.ZOMBIE_MENU, ZombieSpawnerScreen::new);
+		ModelLayerRegistry.registerModelLayer(SkeletonAllyModel.LAYER, SkeletonAllyModel::createBodyLayer);
+		EntityRendererRegistry.register(ModContent.SKELETON_ALLY, SkeletonAllyRenderer::new);
+		ModelLayerRegistry.registerModelLayer(SpiderAllyModel.LAYER, SpiderAllyModel::createBodyLayer);
+		EntityRendererRegistry.register(ModContent.SPIDER_ALLY, SpiderAllyRenderer::new);
+		MenuScreens.register(ModContent.ALLY_SPAWNER_MENU, AllySpawnerScreen::new);
 	}
 }

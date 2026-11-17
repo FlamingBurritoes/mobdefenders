@@ -1,9 +1,9 @@
 package net.amemah.mobdefenders;
 
 import net.amemah.mobdefenders.entity.ZombieAlly;
-import net.amemah.mobdefenders.menu.ZombieSpawnerMenu;
-import net.amemah.mobdefenders.spawner.ZombieSpawnerData;
-import net.amemah.mobdefenders.spawner.ZombieSpawnerManager;
+import net.amemah.mobdefenders.menu.AllySpawnerMenu;
+import net.amemah.mobdefenders.spawner.AllySpawnerData;
+import net.amemah.mobdefenders.spawner.AllySpawnerManager;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -19,19 +19,19 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
-public class ZombieSpawnerGameTests {
+public class ZombieAllySpawnerGameTests {
 	private BlockPos place(GameTestHelper helper, boolean immediate) {
 		for (int x = 0; x < 8; x++) for (int z = 0; z < 8; z++) {
 			helper.setBlock(new BlockPos(x, 0, z), Blocks.STONE);
 			helper.setBlock(new BlockPos(x, 4, z), Blocks.STONE); // Sun protection, not a behavior change.
 		}
-		helper.setBlock(new BlockPos(4, 1, 4), ModContent.ZOMBIE_SPAWNER);
+		helper.setBlock(new BlockPos(4, 1, 4), ModContent.ZOMBIE_ALLY_SPAWNER);
 		BlockPos pos = helper.absolutePos(new BlockPos(4, 1, 4));
-		if (immediate) ZombieSpawnerData.get(helper.getLevel()).source(pos).readyAt = helper.getLevel().getGameTime();
+		if (immediate) AllySpawnerData.get(helper.getLevel()).source(pos).readyAt = helper.getLevel().getGameTime();
 		return pos;
 	}
 	private ZombieAlly ally(GameTestHelper helper, BlockPos pos) {
-		var source = ZombieSpawnerData.get(helper.getLevel()).source(pos);
+		var source = AllySpawnerData.get(helper.getLevel()).source(pos);
 		helper.assertTrue(source != null && source.entity != null, "Expected an occupied spawner");
 		return (ZombieAlly) helper.getLevel().getEntity(source.entity);
 	}
@@ -39,7 +39,7 @@ public class ZombieSpawnerGameTests {
 	@GameTest(maxTicks = 2900, padding = 16)
 	public void initialDelaySingleCapAndNinetySecondReplacement(GameTestHelper helper) {
 		BlockPos pos = place(helper, false);
-		var data = ZombieSpawnerData.get(helper.getLevel());
+		var data = AllySpawnerData.get(helper.getLevel());
 		var source = data.source(pos);
 		helper.assertTrue(source.readyAt == helper.getLevel().getGameTime() + 900, "Initial delay must be forty-five seconds");
 		helper.runAtTickTime(890, () -> helper.assertTrue(source.entity == null, "Spawned before initial deadline"));
@@ -99,7 +99,7 @@ public class ZombieSpawnerGameTests {
 			}).thenWaitUntil(() -> {
 				helper.assertTrue(ally.position().distanceToSqr(Vec3.atBottomCenterOf(pos.above())) < .1,
 					"Must return to block after combat; position=" + ally.position() + ", top=" + Vec3.atBottomCenterOf(pos.above())
-						+ ", target=" + ally.getTarget() + ", standing=" + ZombieSpawnerData.get(helper.getLevel()).source(pos).standing);
+						+ ", target=" + ally.getTarget() + ", standing=" + AllySpawnerData.get(helper.getLevel()).source(pos).standing);
 			}).thenSucceed();
 		});
 	}
@@ -108,22 +108,22 @@ public class ZombieSpawnerGameTests {
 	public void menuPersistenceRangeAndBreakCleanup(GameTestHelper helper) {
 		BlockPos pos = place(helper, true);
 		var level = helper.getLevel();
-		var data = ZombieSpawnerData.get(level);
+		var data = AllySpawnerData.get(level);
 		var player = helper.makeMockPlayer(GameType.SURVIVAL);
 		player.snapTo(pos.getX() + .5, pos.getY() + 1, pos.getZ() + 1.5, 0, 0);
-		var menu = new ZombieSpawnerMenu(1, player.getInventory(), ContainerLevelAccess.create(level, pos));
+		var menu = new AllySpawnerMenu(1, player.getInventory(), ContainerLevelAccess.create(level, pos));
 		helper.assertTrue(menu.standing(), "First/default option must be Standing");
 		helper.assertTrue(!menu.clickMenuButton(player, 9) && menu.standing(), "Unknown button IDs must not change mode");
 		helper.assertTrue(menu.clickMenuButton(player, 0) && !menu.standing(), "Button must switch to Wander");
-		var saved = ZombieSpawnerData.read(data.write());
+		var saved = AllySpawnerData.read(data.write());
 		helper.assertTrue(!saved.source(pos).standing, "Guard mode must survive serialization");
 		level.setBlockAndUpdate(pos, level.getBlockState(pos).setValue(BlockStateProperties.HORIZONTAL_FACING, net.minecraft.core.Direction.EAST));
 		helper.assertTrue(!data.source(pos).standing, "State rotation must retain mode/source");
 		helper.runAtTickTime(30, () -> {
 			ZombieAlly ally = ally(helper, pos);
-			var restoredOwned = ZombieSpawnerData.read(data.write());
+			var restoredOwned = AllySpawnerData.read(data.write());
 			helper.assertTrue(restoredOwned.source(pos).entity.equals(ally.getUUID()), "Live ownership must survive save");
-			helper.assertTrue(ZombieSpawnerManager.insideHorizontal(pos, ally.position(), 6), "Idle wandering stays near source");
+			helper.assertTrue(AllySpawnerManager.insideHorizontal(pos, ally.position(), 6), "Idle wandering stays near source");
 			ally.setNoAi(true);
 			ally.setNoGravity(true);
 			ally.teleportTo(pos.getX() + 5.5, pos.getY() + 1, pos.getZ() + .5);
@@ -151,11 +151,11 @@ public class ZombieSpawnerGameTests {
 		helper.runAtTickTime(30, () -> {
 			ZombieAlly ally = ally(helper, pos);
 			Vec3 start = ally.position();
-			ZombieSpawnerData.get(helper.getLevel()).toggle(pos);
+			AllySpawnerData.get(helper.getLevel()).toggle(pos);
 			helper.startSequence().thenWaitUntil(() -> {
 				helper.assertTrue(ally.position().distanceToSqr(start) > 2.25, "Wander must actually walk away from its idle post");
-				helper.assertTrue(ZombieSpawnerManager.inside(pos, ally.position(), 6), "Wander destination must stay within roam radius");
-			}).thenExecute(() -> ZombieSpawnerData.get(helper.getLevel()).toggle(pos))
+				helper.assertTrue(AllySpawnerManager.inside(pos, ally.position(), 6), "Wander destination must stay within roam radius");
+			}).thenExecute(() -> AllySpawnerData.get(helper.getLevel()).toggle(pos))
 				.thenWaitUntil(() -> helper.assertTrue(ally.position().distanceToSqr(Vec3.atBottomCenterOf(pos.above())) < .1,
 					"Switching back to Standing must return the same ally to the block")).thenSucceed();
 		});
@@ -195,7 +195,7 @@ public class ZombieSpawnerGameTests {
 		BlockPos pos = place(helper, true);
 		helper.getLevel().setBlockAndUpdate(pos.above(), Blocks.STONE.defaultBlockState());
 		helper.runAtTickTime(35, () -> {
-			helper.assertTrue(ZombieSpawnerData.get(helper.getLevel()).source(pos).entity == null, "Blocked top must not spawn into solids");
+			helper.assertTrue(AllySpawnerData.get(helper.getLevel()).source(pos).entity == null, "Blocked top must not spawn into solids");
 			helper.getLevel().setBlockAndUpdate(pos.above(), Blocks.AIR.defaultBlockState());
 		});
 		helper.runAtTickTime(65, () -> {
@@ -233,13 +233,13 @@ public class ZombieSpawnerGameTests {
 	public void unloadedOwnershipAndPendingBreakCleanupSurviveSave(GameTestHelper helper) {
 		BlockPos pos = place(helper, false);
 		var level = helper.getLevel();
-		var data = ZombieSpawnerData.get(level);
+		var data = AllySpawnerData.get(level);
 		UUID unloaded = UUID.randomUUID();
 		data.occupy(data.source(pos), unloaded);
-		var restored = ZombieSpawnerData.read(data.write());
+		var restored = AllySpawnerData.read(data.write());
 		helper.assertTrue(restored.owner(unloaded) != null && restored.source(pos).entity.equals(unloaded), "Unloaded UUID must remain owned");
 		restored.unregister(level, pos);
-		var afterBreak = ZombieSpawnerData.read(restored.write());
+		var afterBreak = AllySpawnerData.read(restored.write());
 		helper.assertTrue(afterBreak.consumePendingDeath(unloaded) && !afterBreak.consumePendingDeath(unloaded), "Unloaded cleanup must persist and be consumed once");
 		helper.succeed();
 	}
@@ -247,7 +247,7 @@ public class ZombieSpawnerGameTests {
 	@GameTest(padding = 16)
 	public void requestedRecipes(GameTestHelper helper) {
 		checkRecipe(helper, "copper_reinforced_planks", Items.COPPER_INGOT, Items.OAK_PLANKS, ModContent.COPPER_REINFORCED_PLANKS_ITEM);
-		checkRecipe(helper, "zombie_spawner", Items.ROTTEN_FLESH, ModContent.COPPER_REINFORCED_PLANKS_ITEM, ModContent.ZOMBIE_SPAWNER_ITEM);
+		checkRecipe(helper, "zombie_ally_spawner", Items.ROTTEN_FLESH, ModContent.COPPER_REINFORCED_PLANKS_ITEM, ModContent.ZOMBIE_ALLY_SPAWNER_ITEM);
 		helper.succeed();
 	}
 	private void checkRecipe(GameTestHelper helper, String name, Item outer, Item center, Item output) {

@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["SES", "SCS", "SSS"],
+  "key": {"S": "minecraft:string", "C": "mobdefenders:copper_reinforced_planks", "E": "minecraft:spider_eye"},
+  "result": {"id": "mobdefenders:spider_ally_spawner", "count": 1}
+}

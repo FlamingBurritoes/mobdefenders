@@ -1,8 +1,9 @@
 package net.amemah.mobdefenders.block;
 
 import com.mojang.serialization.MapCodec;
-import net.amemah.mobdefenders.menu.ZombieSpawnerMenu;
-import net.amemah.mobdefenders.spawner.ZombieSpawnerData;
+import net.amemah.mobdefenders.menu.AllySpawnerMenu;
+import net.amemah.mobdefenders.spawner.AllySpawnerData;
+import net.amemah.mobdefenders.spawner.SpawnerKind;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -18,9 +19,9 @@ import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
-public final class ZombieSpawnerBlock extends Block {
-	public static final MapCodec<ZombieSpawnerBlock> CODEC = simpleCodec(ZombieSpawnerBlock::new);
-	public ZombieSpawnerBlock(Properties properties) {
+public final class AllySpawnerBlock extends Block {
+	public static final MapCodec<AllySpawnerBlock> CODEC = simpleCodec(AllySpawnerBlock::new);
+	public AllySpawnerBlock(Properties properties) {
 		super(properties);
 		registerDefaultState(stateDefinition.any().setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH));
 	}
@@ -40,18 +41,25 @@ public final class ZombieSpawnerBlock extends Block {
 	@Override protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean moved) {
 		super.onPlace(state, level, pos, oldState, moved);
 		if (level instanceof ServerLevel server && !oldState.is(this)) {
-			ZombieSpawnerData.get(server).register(pos, server.getGameTime());
+			var data = AllySpawnerData.get(server);
+			var previous = data.source(pos);
+			SpawnerKind kind = SpawnerKind.forBlock(state);
+			if (previous != null && previous.kind != kind) data.unregister(server, pos);
+			data.register(pos, server.getGameTime(), kind);
 		}
 	}
 	@Override protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean moved) {
 		super.affectNeighborsAfterRemoval(state, level, pos, moved);
-		if (!level.getBlockState(pos).is(this)) ZombieSpawnerData.get(level).unregister(level, pos);
+		var data = AllySpawnerData.get(level);
+		var source = data.source(pos);
+		if (!level.getBlockState(pos).is(this) && source != null && source.kind.block() == this)
+			data.unregister(level, pos);
 	}
 	@Override protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
 		if (level instanceof ServerLevel) {
 			player.openMenu(new SimpleMenuProvider((id, inventory, user) ->
-				new ZombieSpawnerMenu(id, inventory, ContainerLevelAccess.create(level, pos)),
-				Component.translatable("block.mobdefenders.zombie_spawner")));
+				new AllySpawnerMenu(id, inventory, ContainerLevelAccess.create(level, pos)),
+				getName()));
 		}
 		return InteractionResult.SUCCESS;
 	}

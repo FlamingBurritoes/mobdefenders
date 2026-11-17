@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": {"model": "mobdefenders:block/spider_ally_spawner"},
+    "facing=east": {"model": "mobdefenders:block/spider_ally_spawner", "y": 90},
+    "facing=south": {"model": "mobdefenders:block/spider_ally_spawner", "y": 180},
+    "facing=west": {"model": "mobdefenders:block/spider_ally_spawner", "y": 270}
+  }
+}

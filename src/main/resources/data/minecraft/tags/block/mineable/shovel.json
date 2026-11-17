@@ -1,1 +1,1 @@
-{"replace": false, "values": ["mobdefenders:zombie_spawner"]}
+{"replace": false, "values": ["mobdefenders:zombie_ally_spawner", "mobdefenders:skeleton_ally_spawner", "mobdefenders:spider_ally_spawner"]}

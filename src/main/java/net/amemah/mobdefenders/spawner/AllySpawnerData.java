@@ -1,7 +1,7 @@
 package net.amemah.mobdefenders.spawner;
 
 import net.amemah.mobdefenders.ModContent;
-import net.amemah.mobdefenders.config.ZombieSpawnerConfig;
+import net.amemah.mobdefenders.config.AllySpawnerConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -12,30 +12,37 @@ import net.minecraft.world.level.saveddata.SavedDataType;
 import java.util.*;
 
 /** One slot per source. Missing loaded UUIDs are never treated as confirmed deaths. */
-public final class ZombieSpawnerData extends SavedData {
-	private static final SavedDataType<ZombieSpawnerData> TYPE = new SavedDataType<>(
-		ModContent.id("zombie_spawners"), ZombieSpawnerData::new,
-		CompoundTag.CODEC.xmap(ZombieSpawnerData::read, ZombieSpawnerData::write), null);
+public final class AllySpawnerData extends SavedData {
+	// Keep this legacy storage key so existing ownership/deadlines are not lost by the registry rename.
+	private static final SavedDataType<AllySpawnerData> TYPE = new SavedDataType<>(
+		ModContent.id("zombie_spawners"), AllySpawnerData::new,
+		CompoundTag.CODEC.xmap(AllySpawnerData::read, AllySpawnerData::write), null);
 	private final Map<BlockPos, Source> sources = new HashMap<>();
 	private final Map<UUID, Source> ownership = new HashMap<>();
 	private final Set<UUID> pendingDeaths = new HashSet<>();
 
 	public static final class Source {
 		public final BlockPos pos;
+		public final SpawnerKind kind;
 		public UUID entity;
 		public long readyAt;
 		public boolean standing = true;
-		private Source(BlockPos pos, long readyAt) { this.pos = pos.immutable(); this.readyAt = readyAt; }
+		private Source(BlockPos pos, long readyAt, SpawnerKind kind) {
+			this.pos = pos.immutable(); this.readyAt = readyAt; this.kind = kind;
+		}
 	}
 
-	public static ZombieSpawnerData get(ServerLevel level) { return level.getDataStorage().computeIfAbsent(TYPE); }
+	public static AllySpawnerData get(ServerLevel level) { return level.getDataStorage().computeIfAbsent(TYPE); }
 	public List<Source> sources() { return List.copyOf(sources.values()); }
 	public Source source(BlockPos pos) { return sources.get(pos); }
 	public Source owner(UUID uuid) { return ownership.get(uuid); }
 
 	public void register(BlockPos pos, long now) {
+		register(pos, now, SpawnerKind.ZOMBIE_ALLY);
+	}
+	public void register(BlockPos pos, long now, SpawnerKind kind) {
 		if (!sources.containsKey(pos)) {
-			sources.put(pos.immutable(), new Source(pos, now + ZombieSpawnerConfig.get().initialDelayTicks()));
+			sources.put(pos.immutable(), new Source(pos, now + AllySpawnerConfig.get().initialDelayTicks(), kind));
 			setDirty();
 		}
 	}
@@ -51,7 +58,7 @@ public final class ZombieSpawnerData extends SavedData {
 		Source source = ownership.remove(uuid);
 		if (source != null) {
 			source.entity = null;
-			source.readyAt = now + ZombieSpawnerConfig.get().delayTicks();
+			source.readyAt = now + AllySpawnerConfig.get().delayTicks();
 			setDirty();
 		}
 	}
@@ -88,6 +95,7 @@ public final class ZombieSpawnerData extends SavedData {
 		for (Source source : sources.values()) {
 			CompoundTag entry = new CompoundTag();
 			entry.putLong("position", source.pos.asLong());
+			entry.putString("kind", source.kind.name());
 			entry.putLong("ready_at", source.readyAt);
 			entry.putBoolean("standing", source.standing);
 			if (source.entity != null) entry.putString("entity", source.entity.toString());
@@ -104,12 +112,13 @@ public final class ZombieSpawnerData extends SavedData {
 		return root;
 	}
 
-	public static ZombieSpawnerData read(CompoundTag root) {
-		ZombieSpawnerData data = new ZombieSpawnerData();
+	public static AllySpawnerData read(CompoundTag root) {
+		AllySpawnerData data = new AllySpawnerData();
 		ListTag entries = root.getListOrEmpty("sources");
 		for (int i = 0; i < entries.size(); i++) {
 			CompoundTag entry = entries.getCompoundOrEmpty(i);
-			Source source = new Source(BlockPos.of(entry.getLongOr("position", 0)), entry.getLongOr("ready_at", 0));
+			Source source = new Source(BlockPos.of(entry.getLongOr("position", 0)), entry.getLongOr("ready_at", 0),
+				SpawnerKind.valueOf(entry.getStringOr("kind", "ZOMBIE_ALLY")));
 			source.standing = entry.getBooleanOr("standing", true);
 			source.entity = entry.getString("entity").map(UUID::fromString).orElse(null);
 			data.sources.put(source.pos, source);

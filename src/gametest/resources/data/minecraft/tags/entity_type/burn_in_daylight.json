@@ -1,4 +1,4 @@
 {
   "replace": false,
-  "values": ["mobdefenders:zombie_ally"]
+  "values": ["mobdefenders:zombie_ally", "mobdefenders:skeleton_ally", "mobdefenders:spider_ally"]
 }

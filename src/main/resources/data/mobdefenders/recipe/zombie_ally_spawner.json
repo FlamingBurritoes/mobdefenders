@@ -3,5 +3,5 @@
   "category": "misc",
   "pattern": ["FFF", "FCF", "FFF"],
   "key": {"F": "minecraft:rotten_flesh", "C": "mobdefenders:copper_reinforced_planks"},
-  "result": {"id": "mobdefenders:zombie_spawner", "count": 1}
+  "result": {"id": "mobdefenders:zombie_ally_spawner", "count": 1}
 }

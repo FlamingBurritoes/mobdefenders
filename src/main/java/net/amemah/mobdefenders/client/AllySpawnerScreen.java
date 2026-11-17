@@ -1,15 +1,15 @@
 package net.amemah.mobdefenders.client;
 
-import net.amemah.mobdefenders.menu.ZombieSpawnerMenu;
+import net.amemah.mobdefenders.menu.AllySpawnerMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
-public final class ZombieSpawnerScreen extends AbstractContainerScreen<ZombieSpawnerMenu> {
+public final class AllySpawnerScreen extends AbstractContainerScreen<AllySpawnerMenu> {
 	private Button toggle;
-	public ZombieSpawnerScreen(ZombieSpawnerMenu menu, Inventory inventory, Component title) {
+	public AllySpawnerScreen(AllySpawnerMenu menu, Inventory inventory, Component title) {
 		super(menu, inventory, title, 176, 98);
 	}
 	private Component modeText() {

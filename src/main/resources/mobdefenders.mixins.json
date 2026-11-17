@@ -5,7 +5,9 @@
 	"mixins": [
 		"ExampleMixin",
 		"FriendlyGolemMixin",
-		"SunSafeDefenderMixin"
+		"SunSafeDefenderMixin",
+		"FriendlyProjectileMixin",
+		"LegacySpawnerIdMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
