@@ -14,6 +14,8 @@ public final class MobdefendersClient implements ClientModInitializer {
 		EntityRendererRegistry.register(ModContent.SKELETON_ALLY, SkeletonAllyRenderer::new);
 		ModelLayerRegistry.registerModelLayer(SpiderAllyModel.LAYER, SpiderAllyModel::createBodyLayer);
 		EntityRendererRegistry.register(ModContent.SPIDER_ALLY, SpiderAllyRenderer::new);
+		ModelLayerRegistry.registerModelLayer(CreeperAllyModel.LAYER, CreeperAllyModel::createBodyLayer);
+		EntityRendererRegistry.register(ModContent.CREEPER_ALLY, CreeperAllyRenderer::new);
 		MenuScreens.register(ModContent.ALLY_SPAWNER_MENU, AllySpawnerScreen::new);
 	}
 }

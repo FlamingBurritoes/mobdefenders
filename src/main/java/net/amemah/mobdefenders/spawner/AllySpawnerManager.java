@@ -32,11 +32,12 @@ public final class AllySpawnerManager {
 	private static void tick(ServerLevel level) {
 		AllySpawnerData data = AllySpawnerData.get(level);
 		for (var source : data.sources()) {
+			var settings = AllySpawnerConfig.get(source.kind);
 			if (source.entity != null && level.getEntity(source.entity) instanceof PathfinderMob ally && ally instanceof Defender && ally.isAlive()) {
-				int radius = AllySpawnerConfig.get().roamRadius();
+				int radius = settings.roamRadius();
 				ally.setHomeTo(source.pos, radius);
 				if (ally.getTarget() != null && !ally.canAttack(ally.getTarget())) ally.setTarget(null);
-				if (!inside(source.pos, ally.position(), AllySpawnerConfig.get().recallRadius())) {
+				if (!inside(source.pos, ally.position(), settings.recallRadius())) {
 					Vec3 top = Vec3.atBottomCenterOf(source.pos.above());
 					Vec3 destination = safe(level, ally, top) ? top : findPosition(level, source, ally, radius, true);
 					ally.getNavigation().stop();
@@ -56,10 +57,10 @@ public final class AllySpawnerManager {
 			if (!level.isPositionEntityTicking(source.pos) || source.entity != null || level.getGameTime() < source.readyAt) continue;
 			PathfinderMob ally = source.kind.create(level);
 			if (ally == null) continue;
-			Vec3 position = findPosition(level, source, ally, AllySpawnerConfig.get().spawnRadius(), false);
+			Vec3 position = findPosition(level, source, ally, settings.spawnRadius(), false);
 			if (position == null) continue;
 			ally.snapTo(position, level.getRandom().nextFloat() * 360, 0);
-			ally.setHomeTo(source.pos, AllySpawnerConfig.get().roamRadius());
+			ally.setHomeTo(source.pos, settings.roamRadius());
 			// No vanilla finalizeSpawn: no babies, jockeys, leader modifiers or extra zombies.
 			if (level.addFreshEntity(ally)) {
 				data.occupy(source, ally.getUUID());
@@ -85,7 +86,7 @@ public final class AllySpawnerManager {
 			if ((dx == 0 && dz == 0) || dx * dx + dz * dz > radius * radius) continue;
 			for (int dy = 3; dy >= -3; dy--) {
 				Vec3 point = new Vec3(source.pos.getX() + dx + .5, source.pos.getY() + dy, source.pos.getZ() + dz + .5);
-				if (inside(source.pos, point, AllySpawnerConfig.get().roamRadius()) && safe(level, ally, point)) return point;
+				if (inside(source.pos, point, AllySpawnerConfig.get(source.kind).roamRadius()) && safe(level, ally, point)) return point;
 			}
 		}
 		return null;

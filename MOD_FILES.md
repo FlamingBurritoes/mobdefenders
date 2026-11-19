@@ -22,7 +22,7 @@ Keep this document updated for every project task: describe the behavior, added/
 
 ### Spawner
 
-- Block/item IDs: **`mobdefenders:zombie_ally_spawner`**, **`mobdefenders:skeleton_ally_spawner`** and **`mobdefenders:spider_ally_spawner`**, all in Functional Blocks. All rules below are shared by the three source kinds.
+- Block/item IDs: **`mobdefenders:zombie_ally_spawner`**, **`mobdefenders:skeleton_ally_spawner`**, **`mobdefenders:spider_ally_spawner`** and **`mobdefenders:creeper_ally_spawner`**, all in Functional Blocks. All rules below are shared by the four source kinds. See [SHARED_SPAWNER_RULES.md](SHARED_SPAWNER_RULES.md) for the compiled checklist.
 - Registry rename compatibility: old `mobdefenders:zombie_spawner` block/item lookups are redirected to the canonical zombie ID when decoding saves/stacks. New registry keys, models, textures, recipes, loot and translations use `zombie_ally_spawner`. No duplicate old block/item is registered. The old dimension SavedData storage key `mobdefenders:zombie_spawners` is intentionally retained so existing source ownership/deadlines survive; entries now save their kind, defaulting to Zombie Ally for older records.
 - Hard-coded **one owned ally per source**, with no configurable cap. Overlapping sources have separate UUID ownership.
 - Default full replacement delay: **90 seconds / 1,800 world ticks**, after confirmed death or permanent discard.
@@ -54,6 +54,20 @@ Keep this document updated for every project task: describe the behavior, added/
 - Implements `Defender` and shares all player/friendly/Creeper exclusions, ten-block no-LOS detection, sunlight protection, Standing/Wander patrol/return, ownership, timers, cap, recall, cleanup, portal and sleep rules. Ordinary fire/lava can still hurt it.
 - Uses original `spider_ally.bbmodel` boxes, non-mirrored 64x32 UVs and group pivots, with vanilla resting leg rotations so native spider head/eight-leg animation has the correct splayed stance. No vanilla red-eye overlay covers the supplied texture. Both PNGs are copied byte-for-byte; spawner uses the supplied full cube/all-face texture with north/east/south/west blockstate rotations.
 
+### Creeper Ally
+
+- Entity ID **`mobdefenders:creeper_ally`**, source **`mobdefenders:creeper_ally_spawner`**. No natural spawn or spawn egg. Uses unmodified `Creeper.createAttributes()` (**20 health, 0.25 movement speed**) and normal native 30-tick fuse/radius-3 blast, doubled radius when lightning-charged.
+- Keeps vanilla swell/chase/cat-and-ocelot avoidance, falling/manual ignition and charged state. Uses shared persistent friendly targeting and all Standing/Wander rules; native melee goal approaches without adding melee damage.
+- A narrowly scoped mixin replaces only the ally's private detonation hook. Real vanilla explosion damage/falloff/occlusion applies to eligible monsters, with **no block destruction, fire, TNT priming or friendly/player/passive/iron-golem damage/knockback**. Vanilla hostile creepers are untouched.
+- Uses the same monster filter as every other ally: spiders, piglins, zombified piglins and endermen are eligible for targeting/blast damage. The user's passive-mob protection does not mean excluding vanilla neutral-monster families. Other defenders and hostile Creepers remain excluded.
+- Ally detonation suppresses vanilla unfiltered lingering-potion clouds and secondary death-effect hooks so the blast cannot leave a harmful friendly-area effect. Self-detonation permanently discards the ally and starts the normal 90-second replacement delay; no instant respawn.
+- Supplied `creeper_ally.bbmodel` has exactly vanilla's six boxes/64x32 UVs/group pivots. The native creeper model and renderer retain walking/head animation, swelling/flashing and charged overlay while using the original ally texture.
+
+### Iron Reinforced Planks
+
+- Block/item **`mobdefenders:iron_reinforced_planks`**, Building Blocks tab, ordinary oak-like building/crafting block with axe efficiency and self-drop, matching Copper Reinforced Planks usage.
+- Original `iron_reinforced_plank.bbmodel` full cube/all-face 16x16 UVs and embedded PNG are preserved. Runtime singular texture filename matches the supplied name; registry/recipe use plural `planks`, consistent with Copper Reinforced Planks.
+
 ### Copper Reinforced Planks
 
 - Block/item ID: `mobdefenders:copper_reinforced_planks`; Building Blocks tab.
@@ -63,6 +77,22 @@ Keep this document updated for every project task: describe the behavior, added/
 ### Recipes
 
 Each recipe outputs **one** block.
+
+Creeper Ally Spawner (`G` = Gunpowder; `I` = Iron Reinforced Planks):
+
+```text
+GGG
+GIG
+GGG
+```
+
+Iron Reinforced Planks (`I` = Iron Ingot; `P` = Oak Planks):
+
+```text
+III
+IPI
+III
+```
 
 Spider Ally Spawner (`S` = String; `E` = normal Spider Eye; `C` = Copper Reinforced Planks):
 
@@ -100,19 +130,33 @@ CCC
 
 ### Server configuration
 
-Created at `config/mobdefenders.json` on server/world startup. These settings apply identically to all ally-spawner kinds:
+Created at `config/mobdefenders.json` on server/world startup. Settings resolve **per spawner type** (not per individual placed block), field by field: **type-specific code defaults → explicitly declared shared JSON values → explicitly declared type-specific JSON values**. Omitted JSON fields retain that type's code defaults:
 
 ```json
 {
-  "respawnDelaySeconds": 90,
-  "spawnRadius": 3,
-  "roamRadius": 6,
-  "recallRadius": 12,
-  "detectionRadius": 10
+  "defaults": {
+    "respawnDelaySeconds": 90,
+    "spawnRadius": 3,
+    "roamRadius": 6,
+    "recallRadius": 12,
+    "detectionRadius": 10
+  },
+  "spawners": {
+    "zombie_ally_spawner": {"respawnDelaySeconds": 60},
+    "creeper_ally_spawner": {"respawnDelaySeconds": 120, "detectionRadius": 8}
+  }
 }
 ```
 
-Edit with the server stopped and restart. These are server-authoritative rules, not multiplayer client preferences. Delay: `1..86400` seconds; spawn radius: `1..32`; roam radius: `spawnRadius..64`; recall radius: `roamRadius..128`; detection radius: `1..64`, independent of the other radii. Invalid/missing required fields or malformed JSON log an error and use defaults without overwriting the bad file. Older configs without `recallRadius` receive an in-memory default of `max(12, roamRadius)`; missing `detectionRadius` defaults to **10**, without overwriting other values. There is intentionally no spawn-limit setting. Existing saved deadlines are preserved; changed delays apply to future placements/deaths. Time is world ticks, not wall-clock time.
+Valid override keys: `zombie_ally_spawner`, `skeleton_ally_spawner`, `spider_ally_spawner`, `creeper_ally_spawner` (optionally prefixed `mobdefenders:`). Any/all five settings can be overridden independently. In this example skeleton/spider retain the explicitly shared values, zombie replacement/initial waits are 60/30 seconds, and creeper waits are 120/60 seconds with eight-block detection. Empty shared/type objects do not erase species defaults.
+
+**To change each species' built-in defaults in Java**, edit `defaults(SpawnerKind kind)` in `src/main/java/net/amemah/mobdefenders/config/AllySpawnerConfig.java`. Each switch arm has its own `new Settings(replacementSeconds, spawnRadius, patrolRadius, recallRadius, detectionRadius)`. All four currently retain `90, 3, 6, 12, 10`; changing one arm affects that species wherever JSON does not explicitly override the field. Rebuild/install the JAR and restart. Initial wait remains half the resulting replacement delay.
+
+New config files contain `{"defaults": {}, "spawners": {}}`, so they follow editable per-species code defaults instead of freezing those values into JSON. **Existing explicit JSON values still win**, including fields in older flat files: remove the corresponding shared/type field if you want changes in Java to take effect. Existing configs are not rewritten automatically.
+
+Edit with the server stopped and restart. These are server-authoritative rules, not multiplayer client preferences. Delay: `1..86400` integer seconds; spawn radius: `1..32`; roam radius: `spawnRadius..64`; recall radius: `roamRadius..128`; detection radius: `1..64`, independent of the other radii. Overrides are validated **after inheritance**. An omitted recall radius expands to at least the effective roam radius; other invalid radius combinations must be configured explicitly. Invalid values/types, duplicate/unknown spawner keys or malformed JSON log an error and fall back atomically to built-in defaults for all types, without overwriting the bad file. There is intentionally no spawn-limit setting. Existing saved deadlines are preserved; changed delays apply to future placements/deaths. Time is world ticks, not wall-clock time.
+
+Existing flat configs (the five fields at the JSON root) still work as shared overrides and may also gain a `spawners` object. No migration or overwrite is required. Use either root-level shared fields or the new `defaults` object; when `defaults` exists it supplies shared declarations. The development instance's existing config is intentionally left unchanged. Summoned/unowned defenders resolve the same type-specific detection/patrol settings.
 
 The project's existing `run/config/mobdefenders.json` and generated GameTest config were changed from 180 to 90 seconds and given `recallRadius: 12`. Already-installed external game/server configs are not silently overwritten: change their `respawnDelaySeconds` to 90 (or halve a custom value) to use the shorter timer.
 
@@ -128,6 +172,9 @@ Source art is in `../Useful Vanilla Textures/mobdefenders/` (outside this mod pr
 | `skeleton_ally_spawner.bbmodel` | `models/block/skeleton_ally_spawner.json` and `textures/block/skeleton_ally_spawner.png` |
 | `spider_ally.bbmodel` | `client/SpiderAllyModel.java` and `textures/entity/spider_ally.png` |
 | `spider_ally_spawner.bbmodel` | `models/block/spider_ally_spawner.json` and `textures/block/spider_ally_spawner.png` |
+| `creeper ally/creeper_ally.bbmodel` | `client/CreeperAllyModel.java` and `textures/entity/creeper_ally.png` |
+| `creeper ally/creeper_spawner_block.bbmodel` | `models/block/creeper_ally_spawner.json` and `textures/block/creeper_ally_spawner.png` |
+| `iron_reinforced_plank.bbmodel` | `models/block/iron_reinforced_planks.json` and `textures/block/iron_reinforced_plank.png` |
 | `copper_reinorced_plank.bbmodel` (original filename typo retained) | `models/block/copper_reinforced_planks.json` and `textures/block/copper_reinforced_plank.png` |
 
 - The zombie is an **OptiFine CEM-format** Blockbench project, but its seven cubes and standard pivots need no OptiFine runtime. Native conversion uses `(-x, 24-y, z)` coordinates, a 64x64 texture, original box-UV offsets and mirrored left arm/leg regions. It preserves the exact supplied leg bounds around the +/-1.9 pivots, rather than silently substituting vanilla's slightly shifted bounds.
@@ -155,13 +202,14 @@ Under `src/main/java/net/amemah/mobdefenders/`:
 | `entity/ZombieAlly.java` | Vanilla zombie melee, shared friendly targeting and portal/conversion restrictions. |
 | `entity/SkeletonAlly.java` | Vanilla skeleton bow/strafe AI with normal-mode projectile stats, shared friendliness and no Stray conversion. |
 | `entity/SpiderAlly.java` | Vanilla climbing/leap/melee movement with shared defender rules, no daylight target abandonment or hostile jockeys. |
+| `entity/CreeperAlly.java` | Vanilla fuse/chase with terrain-safe blast using the shared monster filter; protects players, defenders, passive mobs and golems. |
 | `entity/DefenderBehavior.java` | Shared enemy filtering, guard return, source-centered wandering and 3–5 second patrol pause for every ally. |
 | `entity/Defender.java` | Shared sunlight-safe marker required for all current/future friendly defenders. |
 | `block/AllySpawnerBlock.java` | Shared placement/facing, source lifecycle/kind and right-click menu; renamed from ZombieSpawnerBlock. |
 | `config/AllySpawnerConfig.java` | Shared validated server JSON configuration; no cap setting; renamed from ZombieSpawnerConfig. |
 | `spawner/AllySpawnerData.java` | One-slot UUID ownership, saved kind/mode/deadlines and unloaded cleanup; renamed from ZombieSpawnerData, preserving legacy storage key. |
 | `spawner/AllySpawnerManager.java` | Shared server lifecycle, confirmed deaths, typed spawning, smoke and recall; renamed from ZombieSpawnerManager. |
-| `spawner/SpawnerKind.java` | Canonical block/entity mapping for Zombie, Skeleton and Spider Ally sources. |
+| `spawner/SpawnerKind.java` | Canonical block/entity mapping for Zombie, Skeleton, Spider and Creeper Ally sources. |
 | `menu/AllySpawnerMenu.java` | Shared server-validated toggle/mode; no item slots; renamed from ZombieSpawnerMenu. |
 | `client/MobdefendersClient.java` | Client-only screen, supplied zombie model layer and custom-texture renderer registration. |
 | `client/ZombieAllyModel.java` | Native supplied geometry, pivots, mirrored limb UVs and headwear hierarchy; compatible with vanilla ZombieModel animation. |
@@ -170,11 +218,14 @@ Under `src/main/java/net/amemah/mobdefenders/`:
 | `client/SkeletonAllyRenderer.java` | Supplied skeleton art with vanilla skeleton animation/bow/armor layers. |
 | `client/SpiderAllyModel.java` | Native supplied spider boxes, 64x32 UVs and group pivots for vanilla SpiderModel animation. |
 | `client/SpiderAllyRenderer.java` | Supplied spider layer/texture without vanilla hostile-eye overlay. |
+| `client/CreeperAllyModel.java` | Native vanilla layer matching all supplied creeper boxes, UVs and pivots. |
+| `client/CreeperAllyRenderer.java` | Original ally texture with native walking, fuse swelling/flashing and charged overlay. |
 | `client/AllySpawnerScreen.java` | Shared Guard Type label/button; renamed from ZombieSpawnerScreen. |
 | `mixin/FriendlyGolemMixin.java` | Excludes all marked defenders from vanilla golem attack/target acquisition. |
 | `mixin/SunSafeDefenderMixin.java` | Skips vanilla sunlight ignition and helmet wear for all marked defenders, without making them fireproof. |
 | `mixin/FriendlyProjectileMixin.java` | Defender projectiles ignore players, allies, passive mobs and Creepers. |
 | `mixin/LegacySpawnerIdMixin.java` | Old zombie block/item ID lookup compatibility without retaining a duplicate old registry entry. |
+| `mixin/FriendlyCreeperExplosionMixin.java` | Replaces only ally detonation; preserves ordinary hostile creepers. |
 
 ### Added resources
 
@@ -197,6 +248,9 @@ Under `src/main/resources/`:
 | `assets/mobdefenders/textures/{entity/spider_ally,block/spider_ally_spawner}.png` | Unchanged supplied spider entity/spawner textures. |
 | `data/mobdefenders/loot_table/blocks/spider_ally_spawner.json` | Spider spawner self-drop. |
 | `data/mobdefenders/recipe/spider_ally_spawner.json` | Requested SES/SCS/SSS shaped recipe, producing one spawner. |
+| `assets/mobdefenders/{blockstates,models/block,items}/{creeper_ally_spawner,iron_reinforced_planks}.json` | Creeper directional/full-cube models and iron building-block models/item definitions. |
+| `assets/mobdefenders/textures/{entity/creeper_ally,block/creeper_ally_spawner,block/iron_reinforced_plank}.png` | Original supplied/embedded textures unchanged. |
+| `data/mobdefenders/{recipe,loot_table/blocks}/{creeper_ally_spawner,iron_reinforced_planks}.json` | Exact requested recipes and explosion-survival self-drops. |
 
 ### Edited existing files
 
@@ -215,6 +269,10 @@ Under `src/main/resources/`:
 | `src/test/java/net/amemah/mobdefenders/config/AllySpawnerConfigTest.java` | Shared config tests; renamed from ZombieSpawnerConfigTest. |
 | `src/test/java/net/amemah/mobdefenders/client/ZombieAllyModelTest.java` | Baked native hierarchy/leg bounds and supplied mirrored-limb UV region checks. |
 | `src/test/java/net/amemah/mobdefenders/client/SpiderAllyModelTest.java` | Supplied leg dimensions/pivots/UVs and vanilla head/leg animation reset. |
+| `src/test/java/net/amemah/mobdefenders/client/CreeperAllyModelTest.java` | Supplied creeper boxes/pivots/UVs and native animation parity. |
+| `src/gametest/java/net/amemah/mobdefenders/CreeperAllySpawnerGameTests.java` | Fuse/self-discard lifecycle, safe normal/charged blasts, neutral/friendly protection, vanilla regression, patrol return/menu/recall/sun and recipes. |
+| `SHARED_SPAWNER_RULES.md` | Compiled common spawner/guard requirements for every species. |
+| `src/gametest/java/net/amemah/mobdefenders/config/AllySpawnerConfigGameTests.java` | Per-kind initial/replacement deadlines, preserved save data and per-species detection/fallback with temporary synchronous overrides. |
 | `src/gametest/java/net/amemah/mobdefenders/SpiderAllySpawnerGameTests.java` | Spider timers/cap/save/cleanup, friendliness/daylight combat, patrol/recall/Standing and skeleton pause regression. |
 | `src/test/java/net/amemah/mobdefenders/client/SkeletonAllyModelTest.java` | Native skeleton hierarchy, thin-limb bounds/pivots and source UV-region checks. |
 | `src/gametest/java/net/amemah/mobdefenders/ZombieAllySpawnerGameTests.java` | Existing zombie regressions; renamed from ZombieSpawnerGameTests. |
@@ -329,3 +387,43 @@ Under `src/main/resources/`:
 - Extended `SpiderAllyModelTest.java` to compare head/every leg rotation with vanilla over 72 rest/walking frames and verify native resting rotations. Added `SpiderSpawnerResourcesTest.java` for all four model-facing variants. Extended the cooldown check in `SpiderAllySpawnerGameTests.java` to all three species.
 - Updated `README.md` and this guide. No source art, recipes, spawn timers, patrol/detection radii or combat rules changed.
 - Verification: full build retry with `--no-daemon` passed: **14 JUnit tests and 35 server GameTests**, including vanilla animation-rotation parity, four-way facing variants and all-species patrol cooldowns. All 30 source JSON files parse and whitespace checks pass. Runtime textures match the supplied PNGs now located in `../Useful Vanilla Textures/mobdefenders/spider ally/`. First build's Gradle daemon disappeared at server-test startup; retry completed successfully. Release JAR includes all four spider facing variants. In-game appearance remains a manual check.
+
+### 2026-11-18 — Creeper Ally, Iron Reinforced Planks and shared requirements
+
+- Added `entity/CreeperAlly.java` and `mixin/FriendlyCreeperExplosionMixin.java`; registered the mixin. Vanilla stats/fuse and charged radius retained; filtered real explosion protects terrain, players, defenders and neutral/passive mobs, including neutral monster families. Suppressed unfiltered lingering clouds/secondary death effects on ally detonation. Existing hostile creepers remain vanilla.
+- Edited `ModContent.java`, `spawner/SpawnerKind.java` and `client/MobdefendersClient.java` for the fourth source/entity, iron block/items/attributes/Creative entries. All source ownership/menu/timers/guard logic stays shared; no duplicated lifecycle.
+- Added `client/CreeperAllyModel.java` and `CreeperAllyRenderer.java`, using native geometry/animation matching inspected supplied art. Added three unchanged embedded PNGs, two blockstates (four facing variants for spawner), two full-cube block models, two modern item definitions, two self-drop loot tables and the exact two requested recipes. Edited language, shovel/axe tags and mixin registration. Source assets unchanged.
+- Added `CreeperAllyModelTest.java` and registered `CreeperAllySpawnerGameTests.java` for stats/fuse/self-discard replacement, cap/save/cleanup, actual swell combat, normal/charged blast safety, vanilla-creeper regression, post-combat patrol return, shared menu/patrol/Standing/recall/sun safety and both recipes. Extended detection GameTests/daylight tag for creeper, the existing all-kind cooldown test covers the fourth kind automatically, and `SpiderSpawnerResourcesTest.java` now validates every spawner's facing variants.
+- Added `SHARED_SPAWNER_RULES.md` as the user-requested compiled similarities checklist; updated `README.md` and this guide.
+- Verification: expanded full build passed with **16 JUnit tests and 45 server GameTests** (44 mod tests plus Fabric's). Covers normal/charged damage/knockback protection for real survival players, all defenders, passive mobs and neutral monsters; block/TNT safety; no lingering poison cloud; real native swell/fuse; self-discard replacement timing; unchanged hostile creeper damage/terrain destruction; post-combat walk-back and shared menu/Standing/patrol/recall/sunlight/recipes. All 40 source JSON files parse; all three runtime PNGs match both supplied external and embedded bytes. Release classes/resources/recipes/mixin/four-way facing verified; tests and the test-only daylight tag excluded. Whitespace checks pass. Client appearance remains a manual check.
+
+### 2026-11-18 — Clarified Creeper Ally monster targeting
+
+- User clarified that “neutral” protection meant passive mobs and friendly mobs such as Iron Golems, not spiders/piglins/other neutral-monster families.
+- Edited `entity/CreeperAlly.java` to remove the extra species exclusions and use `DefenderBehavior.validEnemy` for blast damage/knockback and the shared `canAttack` rule for targeting. Spiders, Piglins, Zombified Piglins and Endermen are eligible again; players, defenders, passive mobs, Iron Golems and Creepers stay protected. Block safety is unchanged.
+- Updated both normal/charged blast fixtures in `CreeperAllySpawnerGameTests.java` to assert targeting and actual damage for those monster types while retaining player/ally/passive/golem/block safety checks.
+- Updated `README.md`, `SHARED_SPAWNER_RULES.md` and the current Creeper section above; previous entries describe historical verification before this clarification.
+- Verification: full build passed with **16 JUnit tests and 45 server GameTests**. Normal and charged blasts target/damage spiders, piglins, zombified piglins and endermen while preserving players, defenders, passive mobs, Iron Golems, Creepers and blocks. Whitespace checks passed.
+
+### 2026-11-18 — Per-spawner-type configuration with default inheritance
+
+- Edited `config/AllySpawnerConfig.java` to resolve shared defaults plus optional sparse overrides per canonical spawner key. Omitted shared fields use built-ins; omitted per-kind fields inherit shared defaults. Existing flat JSON files remain compatible and are never rewritten. Integer/radius validation applies to fully resolved settings; invalid files fall back atomically without changing the file.
+- Edited `spawner/SpawnerKind.java` with stable config keys and entity-to-kind fallback for unowned/summoned allies. Edited `AllySpawnerData.java` to schedule initial/replacement deadlines from the source kind, and `AllySpawnerManager.java` to use source-specific spawn/patrol/recall values. Saved deadlines and ownership format remain unchanged.
+- Edited `entity/DefenderBehavior.java` to resolve the owned source's settings (or entity species when unowned) for target acquisition/retention, patrol destinations and guard-return pathfinding. No guard modes, friendly filters, fixed one-ally cap or shared 3–5-second patrol pause changed.
+- Extended `AllySpawnerConfigTest.java` for sparse/absent overrides, all five settings, namespaced keys, legacy compatibility, validation, immutable results and radius inheritance. Added/registered `config/AllySpawnerConfigGameTests.java` for per-kind timer scheduling/save preservation and real mob detection boundaries. Temporary test overrides are restored synchronously before any world tick.
+- Updated `README.md`, `SHARED_SPAWNER_RULES.md` and the configuration guide above. Existing development/server configs are preserved.
+- Verification: full build passed with **23 JUnit tests and 46 server GameTests**. Per-kind inheritance/legacy parsing, validation, actual timer scheduling/save preservation and species-specific mob detection pass alongside existing lifecycle/combat/guard regressions. All 40 source JSON files parse; release contains per-kind config classes and excludes test classes. Existing development config remained unchanged.
+
+### 2026-11-18 — Editable per-species built-in code defaults
+
+- Added the actual `defaults(SpawnerKind kind)` switch to `config/AllySpawnerConfig.java`. All four arms retain the current gameplay values pending deliberate edits. Startup/invalid-file fallback and omitted-kind resolution now use those individual code defaults.
+- Wired JSON inheritance field by field: type-specific Java defaults, then explicit shared JSON fields, then explicit per-type JSON fields. Validate the final merged per-type result, not partially overridden intermediate settings. Kept flat-config compatibility and saved deadlines unchanged.
+- New generated files use empty `defaults`/`spawners` objects so future Java edits are not masked by generated explicit values. Existing files remain untouched; their explicit values continue to override code.
+- Extended `AllySpawnerConfigTest.java` with distinct code-default fixtures, missing/empty JSON, precedence, flat-file preservation and final-merge validation. Extended `config/AllySpawnerConfigGameTests.java` to verify actual timer scheduling/detection from deliberately different code defaults with no JSON declarations.
+- Updated `README.md`, `SHARED_SPAWNER_RULES.md` and the configuration instructions above, including the exact Java method/argument order and JSON override caveat.
+- Verification: full build passed with **27 JUnit tests and 47 server GameTests**. Distinct code-default fixtures prove field-level inheritance, override precedence and real timer/detection behavior without JSON declarations. Existing compatibility and gameplay regressions pass. Whitespace checks passed; release config class present and test classes excluded.
+
+### 2026-11-19 — IntelliJ mixin resolution diagnostic
+
+- Checked the reported unresolved `FriendlyCreeperExplosionMixin` entry: the Java file is in the configured `net.amemah.mobdefenders.mixin` package, the JAR contains the class, and all 47 server GameTests passed. No mixin or gameplay code changed. Reload the project from the Gradle tool window in IntelliJ; if the warning persists, check that `src/main/java` is a source root and the Gradle JVM uses Java 25.
+- The full build separately reported four configuration unit-test failures: those assertions still expect the previous 12-block recall default, while the current per-kind Java settings use 15. Existing per-kind settings were left untouched.

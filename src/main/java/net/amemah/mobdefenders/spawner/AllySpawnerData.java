@@ -42,7 +42,7 @@ public final class AllySpawnerData extends SavedData {
 	}
 	public void register(BlockPos pos, long now, SpawnerKind kind) {
 		if (!sources.containsKey(pos)) {
-			sources.put(pos.immutable(), new Source(pos, now + AllySpawnerConfig.get().initialDelayTicks(), kind));
+			sources.put(pos.immutable(), new Source(pos, now + AllySpawnerConfig.get(kind).initialDelayTicks(), kind));
 			setDirty();
 		}
 	}
@@ -58,7 +58,7 @@ public final class AllySpawnerData extends SavedData {
 		Source source = ownership.remove(uuid);
 		if (source != null) {
 			source.entity = null;
-			source.readyAt = now + AllySpawnerConfig.get().delayTicks();
+			source.readyAt = now + AllySpawnerConfig.get(source.kind).delayTicks();
 			setDirty();
 		}
 	}

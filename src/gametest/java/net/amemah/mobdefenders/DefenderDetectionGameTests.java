@@ -13,6 +13,14 @@ import net.minecraft.world.phys.Vec3;
 
 public class DefenderDetectionGameTests {
 	@GameTest(maxTicks = 400, padding = 32, skyAccess = true)
+	public void creeperUsesTenBlocksFromItselfNotTheSpawner(GameTestHelper h) {
+		mobCenteredRange(h, SpawnerKind.CREEPER_ALLY);
+	}
+	@GameTest(maxTicks = 400, padding = 32, skyAccess = true)
+	public void creeperDetectsAndRetainsTargetsThroughWalls(GameTestHelper h) {
+		throughWall(h, SpawnerKind.CREEPER_ALLY);
+	}
+	@GameTest(maxTicks = 400, padding = 32, skyAccess = true)
 	public void spiderUsesTenBlocksFromItselfNotTheSpawner(GameTestHelper h) {
 		mobCenteredRange(h, SpawnerKind.SPIDER_ALLY);
 	}

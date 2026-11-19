@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["GGG", "GIG", "GGG"],
+  "key": {"G": "minecraft:gunpowder", "I": "mobdefenders:iron_reinforced_planks"},
+  "result": {"id": "mobdefenders:creeper_ally_spawner", "count": 1}
+}

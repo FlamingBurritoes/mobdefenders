@@ -4,6 +4,7 @@ import net.amemah.mobdefenders.block.AllySpawnerBlock;
 import net.amemah.mobdefenders.entity.ZombieAlly;
 import net.amemah.mobdefenders.entity.SkeletonAlly;
 import net.amemah.mobdefenders.entity.SpiderAlly;
+import net.amemah.mobdefenders.entity.CreeperAlly;
 import net.amemah.mobdefenders.menu.AllySpawnerMenu;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -28,13 +29,19 @@ public final class ModContent {
 	public static final Block COPPER_REINFORCED_PLANKS = Registry.register(BuiltInRegistries.BLOCK,
 		id("copper_reinforced_planks"), new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)
 			.setId(ResourceKey.create(Registries.BLOCK, id("copper_reinforced_planks")))));
+	public static final Block IRON_REINFORCED_PLANKS = Registry.register(BuiltInRegistries.BLOCK,
+		id("iron_reinforced_planks"), new Block(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS)
+			.setId(ResourceKey.create(Registries.BLOCK, id("iron_reinforced_planks")))));
 	public static final Block ZOMBIE_ALLY_SPAWNER = spawnerBlock("zombie_ally_spawner");
 	public static final Block SKELETON_ALLY_SPAWNER = spawnerBlock("skeleton_ally_spawner");
 	public static final Block SPIDER_ALLY_SPAWNER = spawnerBlock("spider_ally_spawner");
+	public static final Block CREEPER_ALLY_SPAWNER = spawnerBlock("creeper_ally_spawner");
 	public static final Item COPPER_REINFORCED_PLANKS_ITEM = blockItem("copper_reinforced_planks", COPPER_REINFORCED_PLANKS);
+	public static final Item IRON_REINFORCED_PLANKS_ITEM = blockItem("iron_reinforced_planks", IRON_REINFORCED_PLANKS);
 	public static final Item ZOMBIE_ALLY_SPAWNER_ITEM = blockItem("zombie_ally_spawner", ZOMBIE_ALLY_SPAWNER);
 	public static final Item SKELETON_ALLY_SPAWNER_ITEM = blockItem("skeleton_ally_spawner", SKELETON_ALLY_SPAWNER);
 	public static final Item SPIDER_ALLY_SPAWNER_ITEM = blockItem("spider_ally_spawner", SPIDER_ALLY_SPAWNER);
+	public static final Item CREEPER_ALLY_SPAWNER_ITEM = blockItem("creeper_ally_spawner", CREEPER_ALLY_SPAWNER);
 	public static final EntityType<ZombieAlly> ZOMBIE_ALLY = Registry.register(BuiltInRegistries.ENTITY_TYPE,
 		id("zombie_ally"), EntityType.Builder.of(ZombieAlly::new, MobCategory.CREATURE)
 			.sized(0.6F, 1.95F).eyeHeight(1.74F).clientTrackingRange(8)
@@ -47,6 +54,10 @@ public final class ModContent {
 		id("spider_ally"), EntityType.Builder.of(SpiderAlly::new, MobCategory.CREATURE)
 			.sized(1.4F, .9F).eyeHeight(.65F).clientTrackingRange(8)
 			.build(ResourceKey.create(Registries.ENTITY_TYPE, id("spider_ally"))));
+	public static final EntityType<CreeperAlly> CREEPER_ALLY = Registry.register(BuiltInRegistries.ENTITY_TYPE,
+		id("creeper_ally"), EntityType.Builder.of(CreeperAlly::new, MobCategory.CREATURE)
+			.sized(.6F, 1.7F).eyeHeight(1.445F).clientTrackingRange(8)
+			.build(ResourceKey.create(Registries.ENTITY_TYPE, id("creeper_ally"))));
 	public static final MenuType<AllySpawnerMenu> ALLY_SPAWNER_MENU = Registry.register(BuiltInRegistries.MENU,
 		id("ally_spawner"), new MenuType<>(AllySpawnerMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
@@ -64,14 +75,19 @@ public final class ModContent {
 		FabricDefaultAttributeRegistry.register(ZOMBIE_ALLY, ZombieAlly.createAllyAttributes());
 		FabricDefaultAttributeRegistry.register(SKELETON_ALLY, SkeletonAlly.createAllyAttributes());
 		FabricDefaultAttributeRegistry.register(SPIDER_ALLY, SpiderAlly.createAllyAttributes());
+		FabricDefaultAttributeRegistry.register(CREEPER_ALLY, CreeperAlly.createAttributes());
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS)
 			.register(entries -> {
 				entries.accept(ZOMBIE_ALLY_SPAWNER_ITEM);
 				entries.accept(SKELETON_ALLY_SPAWNER_ITEM);
 				entries.accept(SPIDER_ALLY_SPAWNER_ITEM);
+				entries.accept(CREEPER_ALLY_SPAWNER_ITEM);
 			});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.BUILDING_BLOCKS)
-			.register(entries -> entries.accept(COPPER_REINFORCED_PLANKS_ITEM));
+			.register(entries -> {
+				entries.accept(COPPER_REINFORCED_PLANKS_ITEM);
+				entries.accept(IRON_REINFORCED_PLANKS_ITEM);
+			});
 	}
 	private ModContent() { }
 }

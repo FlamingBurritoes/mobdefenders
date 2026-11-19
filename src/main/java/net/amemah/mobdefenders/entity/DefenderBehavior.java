@@ -3,6 +3,7 @@ package net.amemah.mobdefenders.entity;
 import net.amemah.mobdefenders.config.AllySpawnerConfig;
 import net.amemah.mobdefenders.spawner.AllySpawnerData;
 import net.amemah.mobdefenders.spawner.AllySpawnerManager;
+import net.amemah.mobdefenders.spawner.SpawnerKind;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.*;
@@ -25,11 +26,15 @@ public final class DefenderBehavior {
 		var source = source(mob);
 		return source == null || source.standing;
 	}
+	public static AllySpawnerConfig.Settings settings(Mob mob) {
+		var source = source(mob);
+		return AllySpawnerConfig.get(source != null ? source.kind : SpawnerKind.forEntity(mob));
+	}
 	public static boolean validEnemy(LivingEntity target) {
 		return target instanceof Enemy && !(target instanceof Creeper) && !(target instanceof Defender) && target.isAlive();
 	}
 	public static boolean canAttack(Mob mob, LivingEntity target) {
-		int radius = AllySpawnerConfig.get().detectionRadius();
+		int radius = settings(mob).detectionRadius();
 		return validEnemy(target) && mob.distanceToSqr(target) <= (double) radius * radius;
 	}
 	public static void addGoals(PathfinderMob mob, GoalSelector goals, GoalSelector targets) {
@@ -47,7 +52,7 @@ public final class DefenderBehavior {
 			// mustSee controls retention; acquisition also has its own visibility condition.
 			targetConditions.ignoreLineOfSight();
 		}
-		@Override protected double getFollowDistance() { return AllySpawnerConfig.get().detectionRadius(); }
+		@Override protected double getFollowDistance() { return settings(mob).detectionRadius(); }
 	}
 
 	private static final class WanderAroundSpawnerGoal extends Goal {
@@ -63,9 +68,9 @@ public final class DefenderBehavior {
 			if (source == null || source.standing || mob.getTarget() != null || mob.tickCount < nextAttempt
 				|| !(mob.level() instanceof ServerLevel level)) return false;
 			nextAttempt = mob.tickCount + 20;
-			int radius = AllySpawnerConfig.get().roamRadius();
+			int radius = settings(mob).roamRadius();
 			int pathRadius = AllySpawnerManager.inside(source.pos, mob.position(), radius)
-				? radius : AllySpawnerConfig.get().recallRadius();
+				? radius : settings(mob).recallRadius();
 			for (int attempt = 0; attempt < 24; attempt++) {
 				int dx = mob.getRandom().nextInt(radius * 2 + 1) - radius;
 				int dz = mob.getRandom().nextInt(radius * 2 + 1) - radius;
@@ -120,7 +125,7 @@ public final class DefenderBehavior {
 		@Override public boolean canUse() {
 			var source = source(mob);
 			return source != null && mob.getTarget() == null && (source.standing
-				|| !AllySpawnerManager.inside(source.pos, mob.position(), AllySpawnerConfig.get().roamRadius()));
+				|| !AllySpawnerManager.inside(source.pos, mob.position(), settings(mob).roamRadius()));
 		}
 		@Override public boolean canContinueToUse() { return canUse(); }
 		@Override public boolean requiresUpdateEveryTick() { return true; }
@@ -149,9 +154,9 @@ public final class DefenderBehavior {
 				if (mob.onGround()) {
 					mob.getNavigation().stop();
 					// Wander only needs to re-enter the patrol area; Standing must reach the post.
-					int reach = source.standing ? 0 : Math.max(0, AllySpawnerConfig.get().roamRadius() - 1);
+					int reach = source.standing ? 0 : Math.max(0, settings(mob).roamRadius() - 1);
 					Path path = mob.getNavigation().createPath(source.pos.above(), reach,
-						Math.max(32, Math.min(64, AllySpawnerConfig.get().recallRadius() * 2)));
+						Math.max(32, Math.min(64, settings(mob).recallRadius() * 2)));
 					mob.getNavigation().moveTo(path, 1);
 				}
 			}

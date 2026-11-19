@@ -7,8 +7,12 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SpiderSpawnerResourcesTest {
-	@Test void facingVariantsRotateTheSpiderSpawnerModel() throws Exception {
-		try (var stream = getClass().getResourceAsStream("/assets/mobdefenders/blockstates/spider_ally_spawner.json")) {
+	@Test void facingVariantsRotateEverySpawnerModel() throws Exception {
+		for (String species : new String[]{"zombie", "skeleton", "spider", "creeper"}) checkFacing(species);
+	}
+	private void checkFacing(String species) throws Exception {
+		String name = species + "_ally_spawner";
+		try (var stream = getClass().getResourceAsStream("/assets/mobdefenders/blockstates/" + name + ".json")) {
 			assertNotNull(stream);
 			var variants = JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8))
 				.getAsJsonObject().getAsJsonObject("variants");
@@ -17,7 +21,7 @@ class SpiderSpawnerResourcesTest {
 			for (int i = 0; i < directions.length; i++) {
 				var variant = variants.getAsJsonObject("facing=" + directions[i]);
 				assertNotNull(variant);
-				assertEquals("mobdefenders:block/spider_ally_spawner", variant.get("model").getAsString());
+				assertEquals("mobdefenders:block/" + name, variant.get("model").getAsString());
 				assertEquals(i * 90, variant.has("y") ? variant.get("y").getAsInt() : 0);
 			}
 		}
