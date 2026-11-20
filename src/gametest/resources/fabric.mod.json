@@ -5,7 +5,7 @@
   "name": "Mob Defenders server tests",
   "environment": "server",
   "entrypoints": {
-    "fabric-gametest": ["net.amemah.mobdefenders.ZombieAllySpawnerGameTests", "net.amemah.mobdefenders.SkeletonAllySpawnerGameTests", "net.amemah.mobdefenders.SpiderAllySpawnerGameTests", "net.amemah.mobdefenders.CreeperAllySpawnerGameTests", "net.amemah.mobdefenders.GuardReturnGameTests", "net.amemah.mobdefenders.DefenderDetectionGameTests", "net.amemah.mobdefenders.config.AllySpawnerConfigGameTests"]
+    "fabric-gametest": ["net.amemah.mobdefenders.ZombieAllySpawnerGameTests", "net.amemah.mobdefenders.SkeletonAllySpawnerGameTests", "net.amemah.mobdefenders.SpiderAllySpawnerGameTests", "net.amemah.mobdefenders.CreeperAllySpawnerGameTests", "net.amemah.mobdefenders.EndermanAllySpawnerGameTests", "net.amemah.mobdefenders.SlimeAllySpawnerGameTests", "net.amemah.mobdefenders.DrownedAllySpawnerGameTests", "net.amemah.mobdefenders.GuardReturnGameTests", "net.amemah.mobdefenders.DefenderDetectionGameTests", "net.amemah.mobdefenders.config.AllySpawnerConfigGameTests"]
   },
   "depends": {"mobdefenders": "*", "fabric-gametest-api-v1": "*"}
 }

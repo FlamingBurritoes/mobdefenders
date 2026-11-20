@@ -11,7 +11,7 @@ import net.minecraft.world.level.saveddata.SavedDataType;
 
 import java.util.*;
 
-/** One slot per source. Missing loaded UUIDs are never treated as confirmed deaths. */
+/** Bounded ownership per source. Missing loaded UUIDs are never treated as confirmed deaths. */
 public final class AllySpawnerData extends SavedData {
 	// Keep this legacy storage key so existing ownership/deadlines are not lost by the registry rename.
 	private static final SavedDataType<AllySpawnerData> TYPE = new SavedDataType<>(
@@ -24,12 +24,16 @@ public final class AllySpawnerData extends SavedData {
 	public static final class Source {
 		public final BlockPos pos;
 		public final SpawnerKind kind;
-		public UUID entity;
+		private final Set<UUID> entities = new LinkedHashSet<>();
+		private final Set<UUID> entitiesView = Collections.unmodifiableSet(entities);
+		int quietTicks;
 		public long readyAt;
 		public boolean standing = true;
 		private Source(BlockPos pos, long readyAt, SpawnerKind kind) {
 			this.pos = pos.immutable(); this.readyAt = readyAt; this.kind = kind;
 		}
+		public Set<UUID> entities() { return entitiesView; }
+		public UUID entity() { return entities.isEmpty() ? null : entities.iterator().next(); }
 	}
 
 	public static AllySpawnerData get(ServerLevel level) { return level.getDataStorage().computeIfAbsent(TYPE); }
@@ -48,19 +52,32 @@ public final class AllySpawnerData extends SavedData {
 	}
 
 	public void occupy(Source source, UUID uuid) {
-		if (source.entity != null) throw new IllegalStateException("Spawner slot already occupied");
-		source.entity = uuid;
-		ownership.put(uuid, source);
-		setDirty();
+		replace(source, List.of(), List.of(uuid), 0);
 	}
 
 	public void death(UUID uuid, long now) {
-		Source source = ownership.remove(uuid);
-		if (source != null) {
-			source.entity = null;
-			source.readyAt = now + AllySpawnerConfig.get(source.kind).delayTicks();
-			setDirty();
+		Source source = owner(uuid);
+		if (source != null) replace(source, List.of(uuid), List.of(), now);
+	}
+
+	/** Change ownership as one operation so splits/merges never schedule a replacement. */
+	void replace(Source source, Collection<UUID> removed, Collection<UUID> added, long now) {
+		var retiring = List.copyOf(removed);
+		if (sources.get(source.pos) != source || !source.entities.containsAll(retiring)
+			|| new HashSet<>(retiring).size() != retiring.size()
+			|| source.entities.size() - retiring.size() + added.size() > source.kind.capacity()
+			|| new HashSet<>(added).size() != added.size() || added.stream().anyMatch(ownership::containsKey))
+			throw new IllegalStateException("Invalid spawner ownership change");
+		for (UUID uuid : retiring) {
+			source.entities.remove(uuid);
+			ownership.remove(uuid);
 		}
+		for (UUID uuid : added) {
+			source.entities.add(uuid);
+			ownership.put(uuid, source);
+		}
+		if (source.entities.isEmpty()) source.readyAt = now + AllySpawnerConfig.get(source.kind).delayTicks();
+		setDirty();
 	}
 
 	public void toggle(BlockPos pos) {
@@ -74,11 +91,13 @@ public final class AllySpawnerData extends SavedData {
 	public void unregister(ServerLevel level, BlockPos pos) {
 		Source source = sources.remove(pos);
 		if (source == null) return;
-		if (source.entity != null) {
-			ownership.remove(source.entity); // Clear BEFORE normal death callbacks.
-			var entity = level.getEntity(source.entity);
+		var retiring = List.copyOf(source.entities);
+		source.entities.clear();
+		for (UUID uuid : retiring) ownership.remove(uuid);
+		for (UUID uuid : retiring) {
+			var entity = level.getEntity(uuid);
 			if (entity != null) entity.kill(level);
-			else pendingDeaths.add(source.entity);
+			else pendingDeaths.add(uuid);
 		}
 		setDirty();
 	}
@@ -98,7 +117,15 @@ public final class AllySpawnerData extends SavedData {
 			entry.putString("kind", source.kind.name());
 			entry.putLong("ready_at", source.readyAt);
 			entry.putBoolean("standing", source.standing);
-			if (source.entity != null) entry.putString("entity", source.entity.toString());
+			if (source.kind == SpawnerKind.SLIME_ALLY) {
+				ListTag members = new ListTag();
+				for (UUID uuid : source.entities) {
+					CompoundTag member = new CompoundTag();
+					member.putString("entity", uuid.toString());
+					members.add(member);
+				}
+				entry.put("entities", members);
+			} else if (source.entity() != null) entry.putString("entity", source.entity().toString());
 			entries.add(entry);
 		}
 		root.put("sources", entries);
@@ -120,14 +147,20 @@ public final class AllySpawnerData extends SavedData {
 			Source source = new Source(BlockPos.of(entry.getLongOr("position", 0)), entry.getLongOr("ready_at", 0),
 				SpawnerKind.valueOf(entry.getStringOr("kind", "ZOMBIE_ALLY")));
 			source.standing = entry.getBooleanOr("standing", true);
-			source.entity = entry.getString("entity").map(UUID::fromString).orElse(null);
 			data.sources.put(source.pos, source);
-			if (source.entity != null) data.ownership.put(source.entity, source);
+			entry.getString("entity").ifPresent(uuid -> data.readOwner(source, uuid));
+			for (var member : entry.getListOrEmpty("entities"))
+				if (member instanceof CompoundTag tag) tag.getString("entity").ifPresent(uuid -> data.readOwner(source, uuid));
 		}
 		ListTag deaths = root.getListOrEmpty("pending_deaths");
 		for (int i = 0; i < deaths.size(); i++) {
 			deaths.getCompoundOrEmpty(i).getString("entity").map(UUID::fromString).ifPresent(data.pendingDeaths::add);
 		}
 		return data;
+	}
+	private void readOwner(Source source, String value) {
+		UUID uuid = UUID.fromString(value);
+		if (source.entities.size() < source.kind.capacity() && ownership.putIfAbsent(uuid, source) == null)
+			source.entities.add(uuid);
 	}
 }

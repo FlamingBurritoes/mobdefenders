@@ -20,6 +20,7 @@ public final class SpiderAlly extends Spider implements Defender {
 		return Spider.createAttributes().add(Attributes.ATTACK_DAMAGE, 2);
 	}
 	@Override protected void registerGoals() {
+		// Replace vanilla goals completely, including armadillo avoidance.
 		goalSelector.addGoal(3, new LeapAtTargetGoal(this, .4F));
 		// Vanilla SpiderAttackGoal randomly abandons targets in daylight; defenders must not.
 		goalSelector.addGoal(4, new MeleeAttackGoal(this, 1, false));

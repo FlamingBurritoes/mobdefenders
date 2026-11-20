@@ -1,10 +1,14 @@
 package net.amemah.mobdefenders;
 
 import net.amemah.mobdefenders.block.AllySpawnerBlock;
+import net.amemah.mobdefenders.block.DrownedAllySpawnerBlock;
+import net.amemah.mobdefenders.entity.DrownedAlly;
 import net.amemah.mobdefenders.entity.ZombieAlly;
 import net.amemah.mobdefenders.entity.SkeletonAlly;
 import net.amemah.mobdefenders.entity.SpiderAlly;
 import net.amemah.mobdefenders.entity.CreeperAlly;
+import net.amemah.mobdefenders.entity.EndermanAlly;
+import net.amemah.mobdefenders.entity.SlimeAlly;
 import net.amemah.mobdefenders.menu.AllySpawnerMenu;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -36,12 +40,20 @@ public final class ModContent {
 	public static final Block SKELETON_ALLY_SPAWNER = spawnerBlock("skeleton_ally_spawner");
 	public static final Block SPIDER_ALLY_SPAWNER = spawnerBlock("spider_ally_spawner");
 	public static final Block CREEPER_ALLY_SPAWNER = spawnerBlock("creeper_ally_spawner");
+	public static final Block ENDERMAN_ALLY_SPAWNER = spawnerBlock("enderman_ally_spawner");
+	public static final Block SLIME_ALLY_SPAWNER = spawnerBlock("slime_ally_spawner");
+	public static final Block DROWNED_ALLY_SPAWNER = Registry.register(BuiltInRegistries.BLOCK,
+		id("drowned_ally_spawner"), new DrownedAllySpawnerBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.DIRT)
+			.setId(ResourceKey.create(Registries.BLOCK, id("drowned_ally_spawner")))));
 	public static final Item COPPER_REINFORCED_PLANKS_ITEM = blockItem("copper_reinforced_planks", COPPER_REINFORCED_PLANKS);
 	public static final Item IRON_REINFORCED_PLANKS_ITEM = blockItem("iron_reinforced_planks", IRON_REINFORCED_PLANKS);
 	public static final Item ZOMBIE_ALLY_SPAWNER_ITEM = blockItem("zombie_ally_spawner", ZOMBIE_ALLY_SPAWNER);
 	public static final Item SKELETON_ALLY_SPAWNER_ITEM = blockItem("skeleton_ally_spawner", SKELETON_ALLY_SPAWNER);
 	public static final Item SPIDER_ALLY_SPAWNER_ITEM = blockItem("spider_ally_spawner", SPIDER_ALLY_SPAWNER);
 	public static final Item CREEPER_ALLY_SPAWNER_ITEM = blockItem("creeper_ally_spawner", CREEPER_ALLY_SPAWNER);
+	public static final Item ENDERMAN_ALLY_SPAWNER_ITEM = blockItem("enderman_ally_spawner", ENDERMAN_ALLY_SPAWNER);
+	public static final Item SLIME_ALLY_SPAWNER_ITEM = blockItem("slime_ally_spawner", SLIME_ALLY_SPAWNER);
+	public static final Item DROWNED_ALLY_SPAWNER_ITEM = blockItem("drowned_ally_spawner", DROWNED_ALLY_SPAWNER);
 	public static final EntityType<ZombieAlly> ZOMBIE_ALLY = Registry.register(BuiltInRegistries.ENTITY_TYPE,
 		id("zombie_ally"), EntityType.Builder.of(ZombieAlly::new, MobCategory.CREATURE)
 			.sized(0.6F, 1.95F).eyeHeight(1.74F).clientTrackingRange(8)
@@ -58,6 +70,18 @@ public final class ModContent {
 		id("creeper_ally"), EntityType.Builder.of(CreeperAlly::new, MobCategory.CREATURE)
 			.sized(.6F, 1.7F).eyeHeight(1.445F).clientTrackingRange(8)
 			.build(ResourceKey.create(Registries.ENTITY_TYPE, id("creeper_ally"))));
+	public static final EntityType<EndermanAlly> ENDERMAN_ALLY = Registry.register(BuiltInRegistries.ENTITY_TYPE,
+		id("enderman_ally"), EntityType.Builder.of(EndermanAlly::new, MobCategory.CREATURE)
+			.sized(.6F, 2.9F).eyeHeight(2.55F).clientTrackingRange(8)
+			.build(ResourceKey.create(Registries.ENTITY_TYPE, id("enderman_ally"))));
+	public static final EntityType<SlimeAlly> SLIME_ALLY = Registry.register(BuiltInRegistries.ENTITY_TYPE,
+		id("slime_ally"), EntityType.Builder.of(SlimeAlly::new, MobCategory.CREATURE)
+			.sized(.52F, .52F).eyeHeight(.325F).clientTrackingRange(8)
+			.build(ResourceKey.create(Registries.ENTITY_TYPE, id("slime_ally"))));
+	public static final EntityType<DrownedAlly> DROWNED_ALLY = Registry.register(BuiltInRegistries.ENTITY_TYPE,
+		id("drowned_ally"), EntityType.Builder.of(DrownedAlly::new, MobCategory.CREATURE)
+			.sized(.6F, 1.95F).eyeHeight(1.74F).clientTrackingRange(8)
+			.build(ResourceKey.create(Registries.ENTITY_TYPE, id("drowned_ally"))));
 	public static final MenuType<AllySpawnerMenu> ALLY_SPAWNER_MENU = Registry.register(BuiltInRegistries.MENU,
 		id("ally_spawner"), new MenuType<>(AllySpawnerMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
@@ -76,12 +100,18 @@ public final class ModContent {
 		FabricDefaultAttributeRegistry.register(SKELETON_ALLY, SkeletonAlly.createAllyAttributes());
 		FabricDefaultAttributeRegistry.register(SPIDER_ALLY, SpiderAlly.createAllyAttributes());
 		FabricDefaultAttributeRegistry.register(CREEPER_ALLY, CreeperAlly.createAttributes());
+		FabricDefaultAttributeRegistry.register(ENDERMAN_ALLY, EndermanAlly.createAttributes());
+		FabricDefaultAttributeRegistry.register(SLIME_ALLY, SlimeAlly.createAllyAttributes());
+		FabricDefaultAttributeRegistry.register(DROWNED_ALLY, DrownedAlly.createAllyAttributes());
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS)
 			.register(entries -> {
 				entries.accept(ZOMBIE_ALLY_SPAWNER_ITEM);
 				entries.accept(SKELETON_ALLY_SPAWNER_ITEM);
 				entries.accept(SPIDER_ALLY_SPAWNER_ITEM);
 				entries.accept(CREEPER_ALLY_SPAWNER_ITEM);
+				entries.accept(ENDERMAN_ALLY_SPAWNER_ITEM);
+				entries.accept(SLIME_ALLY_SPAWNER_ITEM);
+				entries.accept(DROWNED_ALLY_SPAWNER_ITEM);
 			});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.BUILDING_BLOCKS)
 			.register(entries -> {

@@ -1,12 +1,15 @@
 package net.amemah.mobdefenders.entity;
 
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.*;
 import net.minecraft.world.entity.ai.goal.ZombieAttackGoal;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
 
 /** Vanilla zombie melee/animation with shared defender targeting and guard behavior. */
 public final class ZombieAlly extends Zombie implements Defender {
@@ -28,6 +31,13 @@ public final class ZombieAlly extends Zombie implements Defender {
 		return DefenderBehavior.canAttack(this, target) && super.canAttack(target);
 	}
 	@Override public void setTarget(LivingEntity target) { super.setTarget(target == null || canAttack(target) ? target : null); }
+	@Override public void setBaby(boolean baby) { super.setBaby(false); }
+	@Override public void setCanPickUpLoot(boolean allowed) { super.setCanPickUpLoot(false); }
+	@Override public boolean wantsToPickUp(ServerLevel level, ItemStack stack) { return false; }
+	@Override public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
+			EntitySpawnReason reason, SpawnGroupData data) {
+		return data; // No vanilla age, jockey, equipment or leader rolls for command spawns either.
+	}
 	@Override protected boolean convertsInWater() { return false; }
 	@Override protected boolean isSunSensitive() { return false; }
 	@Override public boolean isPreventingPlayerRest(ServerLevel level, Player player) { return false; }

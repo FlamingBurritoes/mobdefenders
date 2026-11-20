@@ -13,6 +13,10 @@ import net.minecraft.world.phys.Vec3;
 
 public class DefenderDetectionGameTests {
 	@GameTest(maxTicks = 400, padding = 32, skyAccess = true)
+	public void endermanDetectsAndRetainsTargetsThroughWalls(GameTestHelper h) {
+		throughWall(h, SpawnerKind.ENDERMAN_ALLY);
+	}
+	@GameTest(maxTicks = 400, padding = 32, skyAccess = true)
 	public void creeperUsesTenBlocksFromItselfNotTheSpawner(GameTestHelper h) {
 		mobCenteredRange(h, SpawnerKind.CREEPER_ALLY);
 	}
@@ -55,8 +59,8 @@ public class DefenderDetectionGameTests {
 	}
 	private PathfinderMob ally(GameTestHelper h, BlockPos pos) {
 		var source = AllySpawnerData.get(h.getLevel()).source(pos);
-		h.assertTrue(source.entity != null, "Expected spawned defender");
-		return (PathfinderMob) h.getLevel().getEntity(source.entity);
+		h.assertTrue(source.entity() != null, "Expected spawned defender");
+		return (PathfinderMob) h.getLevel().getEntity(source.entity());
 	}
 
 	private void mobCenteredRange(GameTestHelper h, SpawnerKind kind) {
@@ -80,6 +84,7 @@ public class DefenderDetectionGameTests {
 			// Inside the test structure: >6 from source but <10 from the ally.
 			enemy.snapTo(pos.getX() + 6.5, pos.getY(), pos.getZ() + 3.5, 0, 0);
 			enemy.setNoAi(true);
+			enemy.setPersistenceRequired(); // Other fixtures may have a distant survival player online.
 			enemy.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
 			h.getLevel().addFreshEntity(enemy);
 			h.startSequence().thenWaitUntil(() -> h.assertTrue(mob.getTarget() == enemy || enemy.getHealth() < enemy.getMaxHealth(),
@@ -98,6 +103,7 @@ public class DefenderDetectionGameTests {
 			var enemy = EntityType.ZOMBIE.create(h.getLevel(), EntitySpawnReason.COMMAND);
 			enemy.snapTo(pos.getX() + 5.5, pos.getY(), pos.getZ() + .5, 0, 0);
 			enemy.setNoAi(true);
+			enemy.setPersistenceRequired();
 			enemy.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
 			h.getLevel().addFreshEntity(enemy);
 			h.startSequence().thenWaitUntil(() -> h.assertTrue(mob.getTarget() == enemy,

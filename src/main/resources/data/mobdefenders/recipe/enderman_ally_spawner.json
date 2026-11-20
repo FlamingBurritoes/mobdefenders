@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["EEE", "EIE", "EEE"],
+  "key": {"E": "minecraft:ender_pearl", "I": "mobdefenders:iron_reinforced_planks"},
+  "result": {"id": "mobdefenders:enderman_ally_spawner", "count": 1}
+}

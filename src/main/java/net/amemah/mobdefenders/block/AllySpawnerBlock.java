@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.state.*;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 
-public final class AllySpawnerBlock extends Block {
+public class AllySpawnerBlock extends Block {
 	public static final MapCodec<AllySpawnerBlock> CODEC = simpleCodec(AllySpawnerBlock::new);
 	public AllySpawnerBlock(Properties properties) {
 		super(properties);

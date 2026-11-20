@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["SSS", "SIS", "SSS"],
+  "key": {"S": "minecraft:slime_ball", "I": "mobdefenders:iron_reinforced_planks"},
+  "result": {"id": "mobdefenders:slime_ally_spawner", "count": 1}
+}

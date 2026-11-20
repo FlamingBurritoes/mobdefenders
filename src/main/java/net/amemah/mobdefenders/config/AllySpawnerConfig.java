@@ -59,6 +59,9 @@ public final class AllySpawnerConfig {
 			case SKELETON_ALLY -> new Settings(90, 3, 6, 15, 10);
 			case SPIDER_ALLY -> new Settings(90, 3, 6, 15, 10);
 			case CREEPER_ALLY -> new Settings(60, 3, 6, 15, 10);
+			case ENDERMAN_ALLY -> new Settings(90, 3, 6, 15, 10);
+			case SLIME_ALLY -> new Settings(90, 3, 6, 15, 10);
+			case DROWNED_ALLY -> new Settings(90, 3, 6, 15, 10);
 		};
 	}
 

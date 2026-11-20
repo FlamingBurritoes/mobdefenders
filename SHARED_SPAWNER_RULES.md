@@ -1,6 +1,6 @@
 # Shared Ally Spawner requirements
 
-Applies to **Zombie, Skeleton, Spider and Creeper Ally Spawners**. Species keep their own movement speed, navigation, combat and vanilla animations; the spawner/guard rules below are shared.
+Applies to **Zombie, Skeleton, Spider, Creeper, Enderman, Slime and Drowned Ally Spawners**. Species keep their own movement speed, navigation, combat and vanilla animations; the spawner/guard rules below are shared.
 
 ## Placement, block and crafting
 
@@ -11,13 +11,13 @@ Applies to **Zombie, Skeleton, Spider and Creeper Ally Spawners**. Species keep 
 
 ## Spawning and ownership
 
-- **Exactly one living owned ally per spawner**, hard-coded rather than a configurable cap.
-- **45-second initial wait**, then **90-second replacement wait** after death or permanent discard. Initial wait is half the configured replacement delay, floored to whole seconds.
+- **One living owned ally per spawner** except Slime: one initial large slime with up to **eight** owned split members. Neither cap is configurable. Slime replacement only starts when the last member is gone. A split family can merge after 20 seconds without detecting an enemy.
+- **45-second initial wait** and **90-second replacement wait** by default (Creeper: 30/60 seconds). Initial wait is half the configured replacement delay, floored to whole seconds.
 - Timers use world ticks. Attempts run once a second, so a ready spawn can be up to one second later than its deadline.
 - Replacement is the same species. A Creeper Ally consuming itself in an explosion starts the same replacement wait.
 - Source, species, guard mode, ally UUID and deadlines persist across saves/restarts. Unloading is not death and never creates another ally.
 - Nearby/overlapping spawners own separate allies. Breaking/replacing a spawner retires only its own ally; unloaded allies are queued for cleanup on next load.
-- Spawn only on safe, supported, dry, collision-free ground in available chunks; do not force-load chunks. Obstructed/occupied destinations retry rather than spawning into blocks/entities.
+- Spawn only at safe, collision-free locations in available chunks; do not force-load chunks. Most allies require dry, supported ground; the Drowned Spawner also supports water. Obstructed/occupied destinations retry rather than spawning into blocks/entities.
 - Successful spawn uses the same smoke particles and spawn animation.
 
 ## Guard controls
@@ -25,7 +25,9 @@ Applies to **Zombie, Skeleton, Spider and Creeper Ally Spawners**. Species keep 
 - Same right-click menu: **Guard Type:** and one **Standing/Wander** toggle.
 - **Standing** by default; mode persists after closing the menu/reloading. Switching modes applies to the same existing ally.
 - **Standing:** spawn on top of the source, hold that post while idle, engage eligible enemies, then return to the exact post.
+- **Spider and Slime Standing exception:** the spawner column and all eight adjacent columns form a **3×3 square**, including diagonals. Hold any dry, supported spot in that area within three blocks vertically of the source. Spawning, emergency recall and Slime merges prefer the top, but can use another safe spot in the square. Return paths target the area, not the center.
 - **Wander:** spawn near the source and choose safe reachable destinations within the **six-block patrol area**.
+- A Drowned with an underwater post swims within the same horizontal radius and at most seven blocks above or below the source. A dry-post Drowned does not seek water.
 - Every ally pauses a randomized **3–5 seconds** between patrol walks. Combat and guard return are not delayed by the idle cooldown.
 - If combat takes a Wander ally outside patrol, it **walks back inside after it has no enemy**, then resumes wandering. It need not stand on the source.
 
@@ -34,24 +36,25 @@ Applies to **Zombie, Skeleton, Spider and Creeper Ally Spawners**. Species keep 
 - Default detection is **ten blocks from the ally's current position**, not its spawner, with **no line-of-sight requirement** for acquisition/retention.
 - Fight hostile monsters, excluding **Creepers and every Defender**. Do not deliberately attack players, defenders or non-enemy passive mobs, even in retaliation. Detection through walls does not bypass physical attack/projectile obstruction.
 - All defenders are **sunlight-safe**, including helmet wear; this is not general fire/lava immunity.
+- Zombie Allies are always adults and never pick up dropped items, even if older save data requests otherwise. Spider Allies do not flee armadillos.
 - Use normal species combat/vanilla animations and supplied art. Friendly golems do not target defenders; defender projectiles and Creeper Ally blasts exclude players, defenders, Creepers and non-enemy passive entities, including iron golems.
 - Creeper Ally uses the same monster filter as the other allies: ordinary spiders, piglins, zombified piglins and endermen are eligible, even though some are classed as neutral in vanilla gameplay.
 - Return by **pathfinding/walking first**. No teleport merely for reaching a patrol edge or taking a long detour.
 - Only **200 ticks (ten seconds) without at least 0.25 blocks of progress** allows the stuck-return teleport fallback; the destination must still be safe.
-- Separate **twelve-block emergency recall** applies in both modes, preferably to the source top, otherwise a safe point inside patrol. Unsafe destinations retry.
+- Separate **emergency recall** (15 blocks by current code defaults) applies in both modes, preferably to the source top, otherwise a safe point inside patrol (inside the 3×3 guard area for Standing Spider and Slime). Unsafe destinations retry.
 - Source-bound allies cannot use portals/change dimensions. Allies persist instead of distance-despawning and do not prevent player sleep.
 
 ## Shared defaults
 
 | Setting | Default |
 | --- | --- |
-| Initial wait | 45 seconds |
-| Replacement delay | 90 seconds |
+| Initial wait | 45 seconds (Creeper: 30 seconds) |
+| Replacement delay | 90 seconds (Creeper: 60 seconds) |
 | Spawn radius | 3 blocks |
 | Patrol radius | 6 blocks |
 | Detection radius | 10 blocks from ally |
-| Emergency recall radius | 12 blocks from source |
+| Emergency recall radius | 15 blocks from source |
 | Between-walk pause | Random 3–5 seconds |
-| Owned-ally cap | 1 |
+| Owned-ally cap | 1 (Slime family: 8) |
 
 Spawn/patrol/recall settings are source-centred. Patrol/recall use a horizontal circle and vertical tolerance; detection uses three-dimensional ally-centred distance. These are the current shipped defaults. Edit each type's `defaults(SpawnerKind kind)` arm in `config/AllySpawnerConfig.java` to change its built-in settings. Resolution is field by field: **type-specific code defaults → explicit shared JSON fields → explicit per-type JSON fields**. Empty/omitted JSON declarations preserve code defaults. Explicit fields in existing configs still override Java changes. New files use empty declaration objects; old flat configs remain compatible. Initial wait stays half the effective replacement delay. Health, movement and combat remain species-specific.

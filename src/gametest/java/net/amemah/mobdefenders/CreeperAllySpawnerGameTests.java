@@ -27,8 +27,8 @@ public class CreeperAllySpawnerGameTests {
 	}
 	private CreeperAlly ally(GameTestHelper h, BlockPos pos) {
 		var source = AllySpawnerData.get(h.getLevel()).source(pos);
-		h.assertTrue(source.entity != null, "Expected one owned creeper");
-		return (CreeperAlly) h.getLevel().getEntity(source.entity);
+		h.assertTrue(source.entity() != null, "Expected one owned creeper");
+		return (CreeperAlly) h.getLevel().getEntity(source.entity());
 	}
 	@GameTest(maxTicks = 2900, padding = 40)
 	public void normalFuseDiscardsAndStartsSharedReplacementTimer(GameTestHelper h) {
@@ -38,7 +38,7 @@ public class CreeperAllySpawnerGameTests {
 		var source = data.source(pos);
 		h.assertTrue(source.kind == SpawnerKind.CREEPER_ALLY && source.readyAt == level.getGameTime() + 900,
 			"Shared 45-second initial wait");
-		h.runAtTickTime(890, () -> h.assertTrue(source.entity == null, "No early initial spawn"));
+		h.runAtTickTime(890, () -> h.assertTrue(source.entity() == null, "No early initial spawn"));
 		h.runAtTickTime(940, () -> {
 			var creeper = ally(h, pos);
 			h.assertTrue(creeper.getMaxHealth() == 20 && creeper.getAttributeValue(Attributes.MOVEMENT_SPEED) == .25,
@@ -46,7 +46,7 @@ public class CreeperAllySpawnerGameTests {
 			creeper.ignite();
 			h.runAtTickTime(960, () -> h.assertTrue(creeper.isAlive(), "Vanilla fuse must not explode before 30 ticks"));
 			h.runAtTickTime(990, () -> {
-				h.assertTrue(creeper.isRemoved() && source.entity == null, "Self-explosion must release owned slot");
+				h.assertTrue(creeper.isRemoved() && source.entity() == null, "Self-explosion must release owned slot");
 				long remaining = source.readyAt - level.getGameTime();
 				h.assertTrue(remaining > 1750 && remaining <= 1800, "Discard starts normal 90-second replacement delay");
 				var restored = AllySpawnerData.read(data.write()).source(pos);
@@ -54,7 +54,7 @@ public class CreeperAllySpawnerGameTests {
 					"Creeper kind/deadline must survive saves");
 			});
 		});
-		h.runAtTickTime(2720, () -> h.assertTrue(source.entity == null, "No early replacement"));
+		h.runAtTickTime(2720, () -> h.assertTrue(source.entity() == null, "No early replacement"));
 		h.runAtTickTime(2810, () -> {
 			var creeper = ally(h, pos);
 			h.assertTrue(level.getEntitiesOfClass(CreeperAlly.class, creeper.getBoundingBox().inflate(6),
@@ -72,6 +72,7 @@ public class CreeperAllySpawnerGameTests {
 			var enemy = EntityType.HUSK.create(h.getLevel(), EntitySpawnReason.COMMAND);
 			enemy.snapTo(pos.getX() + 2.5, pos.getY(), pos.getZ() + .5, 0, 0);
 			enemy.setNoAi(true);
+			enemy.setPersistenceRequired();
 			h.getLevel().addFreshEntity(enemy);
 			h.startSequence().thenWaitUntil(() -> h.assertTrue(creeper.getSwelling(1) > 0,
 				"Native swell goal must acquire nearby hostile and animate fuse"))
@@ -101,8 +102,7 @@ public class CreeperAllySpawnerGameTests {
 		level.addFreshEntity(creeper);
 		if (charged) creeper.thunderHit(level, EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.COMMAND));
 		h.assertTrue(creeper.isPowered() == charged, "Expected charged state");
-		var player = h.makeMockServerPlayerInLevel();
-		player.setGameMode(GameType.SURVIVAL);
+		var player = GameTestPlayers.spawnSurvival(level, center.add(2.5, 0, 0));
 		var cow = EntityType.COW.create(level, EntitySpawnReason.COMMAND);
 		var golem = EntityType.IRON_GOLEM.create(level, EntitySpawnReason.COMMAND);
 		var vanillaCreeper = EntityType.CREEPER.create(level, EntitySpawnReason.COMMAND);
@@ -151,8 +151,11 @@ public class CreeperAllySpawnerGameTests {
 		for (var mob : protectedMobs) {
 			h.assertTrue(mob.isAlive() && mob.getHealth() == health.get(mob), "Blast must not damage " + mob.getType());
 			h.assertTrue(mob.getDeltaMovement().lengthSqr() == 0, "Blast must not knock back friends/neutrals/player");
-			mob.discard();
+			if (mob != player) mob.discard();
 		}
+		h.assertTrue(level.players().contains(player) && player.hurtServer(level, level.damageSources().generic(), 1)
+			&& player.getHealth() < health.get(player), "Fixture player must be in the world and able to take damage");
+		player.discard();
 		h.assertTrue(level.getBlockState(pos).is(ModContent.CREEPER_ALLY_SPAWNER), "Own spawner must survive");
 		h.assertTrue(h.getBlockState(new BlockPos(3, 1, 1)).is(Blocks.OAK_PLANKS)
 			&& h.getBlockState(new BlockPos(3, 1, 5)).is(Blocks.TNT), "Blocks/TNT must not be destroyed or primed");
@@ -168,10 +171,12 @@ public class CreeperAllySpawnerGameTests {
 		var creeper = EntityType.CREEPER.create(level, EntitySpawnReason.COMMAND);
 		creeper.snapTo(h.absoluteVec(new Vec3(3.5, 1, 3.5)), 0, 0);
 		creeper.setNoAi(true);
+		creeper.setPersistenceRequired(); // Detonation, not distance despawn, must remove it.
 		level.addFreshEntity(creeper);
 		var cow = EntityType.COW.create(level, EntitySpawnReason.COMMAND);
 		cow.snapTo(creeper.getX() + 1.5, creeper.getY(), creeper.getZ(), 0, 0);
 		cow.setNoAi(true);
+		cow.setPersistenceRequired();
 		level.addFreshEntity(cow);
 		h.setBlock(new BlockPos(3, 1, 4), Blocks.GLASS);
 		creeper.ignite();
@@ -206,6 +211,7 @@ public class CreeperAllySpawnerGameTests {
 			var enemy = EntityType.HUSK.create(h.getLevel(), EntitySpawnReason.COMMAND);
 			enemy.snapTo(pos.getX() + .5, pos.getY(), pos.getZ() + 5.5, 0, 0);
 			enemy.setNoAi(true);
+			enemy.setPersistenceRequired();
 			h.getLevel().addFreshEntity(enemy);
 			creeper.setTarget(enemy);
 			h.runAtTickTime(80, () -> {

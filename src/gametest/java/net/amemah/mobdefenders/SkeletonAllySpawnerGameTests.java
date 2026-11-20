@@ -31,8 +31,8 @@ public class SkeletonAllySpawnerGameTests {
 	}
 	private SkeletonAlly ally(GameTestHelper h, BlockPos pos) {
 		var source = AllySpawnerData.get(h.getLevel()).source(pos);
-		h.assertTrue(source != null && source.entity != null, "Skeleton source must have one occupied slot");
-		return (SkeletonAlly) h.getLevel().getEntity(source.entity);
+		h.assertTrue(source != null && source.entity() != null, "Skeleton source must have one occupied slot");
+		return (SkeletonAlly) h.getLevel().getEntity(source.entity());
 	}
 
 	@GameTest(maxTicks = 2900, padding = 32)
@@ -45,26 +45,26 @@ public class SkeletonAllySpawnerGameTests {
 			"Skeleton must use the same forty-five-second initial wait");
 		BlockPos zombiePos = pos.offset(3, 0, 0);
 		level.setBlockAndUpdate(zombiePos, ModContent.ZOMBIE_ALLY_SPAWNER.defaultBlockState());
-		h.runAtTickTime(890, () -> h.assertTrue(source.entity == null, "No early initial spawn"));
+		h.runAtTickTime(890, () -> h.assertTrue(source.entity() == null, "No early initial spawn"));
 		h.runAtTickTime(940, () -> {
 			SkeletonAlly skeleton = ally(h, pos);
 			h.assertTrue(skeleton.getMainHandItem().is(Items.BOW) && skeleton.getMaxHealth() == 20
 				&& skeleton.getAttributeValue(Attributes.MOVEMENT_SPEED) == .25
 				&& skeleton.getAttributeValue(Attributes.ARMOR) == 0, "Expected vanilla normal skeleton equipment/stats");
-			h.assertTrue(data.source(zombiePos).entity != null, "Nearby zombie source must independently own a zombie");
+			h.assertTrue(data.source(zombiePos).entity() != null, "Nearby zombie source must independently own a zombie");
 			skeleton.kill(level);
-			h.assertTrue(source.entity == null && source.readyAt == level.getGameTime() + 1800,
+			h.assertTrue(source.entity() == null && source.readyAt == level.getGameTime() + 1800,
 				"Skeleton death must start ninety-second replacement wait");
 			var restored = AllySpawnerData.read(data.write());
 			h.assertTrue(restored.source(pos).kind == SpawnerKind.SKELETON_ALLY
 				&& restored.source(pos).readyAt == source.readyAt, "Saved kind/deadline must survive");
 		});
-		h.runAtTickTime(2730, () -> h.assertTrue(source.entity == null, "No early replacement"));
+		h.runAtTickTime(2730, () -> h.assertTrue(source.entity() == null, "No early replacement"));
 		h.runAtTickTime(2780, () -> {
 			SkeletonAlly skeleton = ally(h, pos);
 			h.assertTrue(level.getEntitiesOfClass(SkeletonAlly.class, skeleton.getBoundingBox().inflate(6),
 				e -> e.isAlive() && data.owner(e.getUUID()) == source).size() == 1, "Exactly one skeleton per source");
-			var zombie = level.getEntity(data.source(zombiePos).entity);
+			var zombie = level.getEntity(data.source(zombiePos).entity());
 			level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 			h.assertTrue(!skeleton.isAlive() && zombie.isAlive(), "Source destruction must not affect the nearby zombie");
 			h.succeed();
@@ -95,6 +95,7 @@ public class SkeletonAllySpawnerGameTests {
 			skeleton.startFreezeConversion(0);
 			h.assertTrue(!skeleton.isFreezeConverting(), "Skeleton must not convert into a hostile Stray");
 			enemy.setNoAi(true);
+			enemy.setPersistenceRequired();
 			enemy.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
 			level.addFreshEntity(enemy);
 			h.startSequence().thenWaitUntil(() -> h.assertTrue(
@@ -222,7 +223,7 @@ public class SkeletonAllySpawnerGameTests {
 				&& data.source(pos).readyAt == level.getGameTime() + 900, "New kind must start its own initial wait");
 			level.setBlockAndUpdate(pos, ModContent.SKELETON_ALLY_SPAWNER.defaultBlockState());
 			h.assertTrue(data.source(pos) != null && data.source(pos).kind == SpawnerKind.SKELETON_ALLY
-				&& data.source(pos).entity == null && data.source(pos).readyAt == level.getGameTime() + 900,
+				&& data.source(pos).entity() == null && data.source(pos).readyAt == level.getGameTime() + 900,
 				"Switching back must retain a new inactive source, not an old UUID/deadline");
 			h.succeed();
 		});

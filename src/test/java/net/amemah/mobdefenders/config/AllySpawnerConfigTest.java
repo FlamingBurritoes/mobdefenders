@@ -17,6 +17,9 @@ class AllySpawnerConfigTest {
 			case SKELETON_ALLY -> new AllySpawnerConfig.Settings(120, 3, 6, 12, 14);
 			case SPIDER_ALLY -> new AllySpawnerConfig.Settings(60, 2, 8, 14, 10);
 			case CREEPER_ALLY -> new AllySpawnerConfig.Settings(180, 3, 6, 12, 10);
+			case ENDERMAN_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
+			case SLIME_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
+			case DROWNED_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
 		};
 	}
 	@Test void absentEntriesUseEachSpeciesCodeDefaultsNotOneGlobalRecord() {
@@ -60,8 +63,11 @@ class AllySpawnerConfigTest {
 		assertEquals(14, config.forKind(SpawnerKind.SKELETON_ALLY).detectionRadius());
 		assertEquals(120, config.forKind(SpawnerKind.CREEPER_ALLY).respawnDelaySeconds());
 		assertEquals(8, config.forKind(SpawnerKind.CREEPER_ALLY).detectionRadius());
-		assertEquals(config.defaults(), config.forKind(SpawnerKind.ZOMBIE_ALLY));
-		assertEquals(config.defaults(), config.forKind(SpawnerKind.SPIDER_ALLY));
+		for (var kind : new SpawnerKind[]{SpawnerKind.ZOMBIE_ALLY, SpawnerKind.SPIDER_ALLY, SpawnerKind.ENDERMAN_ALLY}) {
+			var fallback = AllySpawnerConfig.defaults(kind);
+			assertEquals(new AllySpawnerConfig.Settings(120, fallback.spawnRadius(), fallback.roamRadius(),
+				fallback.recallRadius(), 14), config.forKind(kind));
+		}
 		assertEquals(3, config.forKind(SpawnerKind.CREEPER_ALLY).spawnRadius());
 	}
 	@Test void legacyFlatSettingsRemainSharedAndCanHaveOverrides() {
@@ -73,7 +79,8 @@ class AllySpawnerConfigTest {
 		assertEquals(30, config.forKind(SpawnerKind.ZOMBIE_ALLY).respawnDelaySeconds());
 		assertEquals(4, config.forKind(SpawnerKind.ZOMBIE_ALLY).spawnRadius());
 		assertEquals(9, config.forKind(SpawnerKind.ZOMBIE_ALLY).roamRadius());
-		assertEquals(12, config.forKind(SpawnerKind.ZOMBIE_ALLY).recallRadius());
+		assertEquals(Math.max(9, AllySpawnerConfig.defaults(SpawnerKind.ZOMBIE_ALLY).recallRadius()),
+			config.forKind(SpawnerKind.ZOMBIE_ALLY).recallRadius());
 	}
 	@Test void allFiveSettingsCanBeOverriddenAndNamespacedKeysWork() {
 		var config = AllySpawnerConfig.parseConfiguration("""
@@ -91,7 +98,7 @@ class AllySpawnerConfigTest {
 			{"spawners":{"zombie_ally_spawner":{"roamRadius":24}}}
 			""");
 		assertEquals(24, config.forKind(SpawnerKind.ZOMBIE_ALLY).recallRadius());
-		assertEquals(12, config.forKind(SpawnerKind.SKELETON_ALLY).recallRadius());
+		assertEquals(AllySpawnerConfig.defaults(SpawnerKind.SKELETON_ALLY), config.forKind(SpawnerKind.SKELETON_ALLY));
 	}
 	@Test void invalidOverridesDoNotSilentlyPassValidation() {
 		for (String value : new String[]{"0", "86401", "1.5", "\"30\"", "null", "true"})
@@ -111,7 +118,7 @@ class AllySpawnerConfigTest {
 			{"spawners":{"creeper_ally_spawner":{"respawnDelaySeconds":20},"spider_ally_spawner":{}}}
 			""");
 		assertEquals(20, config.forKind(SpawnerKind.CREEPER_ALLY).respawnDelaySeconds());
-		assertEquals(AllySpawnerConfig.defaults(), config.forKind(SpawnerKind.SPIDER_ALLY));
+		assertEquals(AllySpawnerConfig.defaults(SpawnerKind.SPIDER_ALLY), config.forKind(SpawnerKind.SPIDER_ALLY));
 		assertEquals(AllySpawnerConfig.defaults(), AllySpawnerConfig.parseConfiguration("{\"defaults\":{}}").defaults());
 	}
 	@Test void defaultsAndInitialDelay() {

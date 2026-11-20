@@ -1,6 +1,6 @@
 # Mob Defenders
 
-Player-friendly zombie, skeleton, spider and creeper guards for Fabric Minecraft 26.1.2. Craft and place an Ally Spawner, then right-click to select **Standing** or **Wander**. Each source maintains one ally, with a 45-second initial wait, 90-second replacement timer and safe 12-block recall.
+Player-friendly zombie, skeleton, spider, creeper, enderman, slime and drowned guards for Fabric Minecraft 26.1.2. Craft and place an Ally Spawner, then right-click to select **Standing** or **Wander**. Each source has configurable spawn timers and safe emergency recall. The Slime Spawner tracks up to eight split family members; other spawners track one ally. Drowned Spawners also work underwater, with a seven-block vertical patrol limit.
 
 See [MOD_FILES.md](MOD_FILES.md) for gameplay rules, configuration, recipes, file inventory, supplied-model editing instructions and the ongoing change log. Uses the supplied art with vanilla entity animation. Defenders are sunlight-safe and fight monsters other than Creepers; skeleton arrows avoid friendly fire. All allies pause 3–5 seconds between patrol walks.
 

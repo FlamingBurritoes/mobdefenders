@@ -29,6 +29,9 @@ public class AllySpawnerConfigGameTests {
 					case SKELETON_ALLY -> new AllySpawnerConfig.Settings(40, 3, 6, 12, 6);
 					case SPIDER_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 12, 10);
 					case CREEPER_ALLY -> new AllySpawnerConfig.Settings(60, 3, 6, 12, 8);
+					case ENDERMAN_ALLY -> new AllySpawnerConfig.Settings(100, 3, 6, 15, 12);
+					case SLIME_ALLY -> new AllySpawnerConfig.Settings(80, 3, 6, 15, 11);
+					case DROWNED_ALLY -> new AllySpawnerConfig.Settings(100, 3, 6, 15, 10);
 				}) : AllySpawnerConfig.parseConfiguration("""
 					{"spawners":{
 					 "zombie_ally_spawner":{"respawnDelaySeconds":20,"detectionRadius":4},

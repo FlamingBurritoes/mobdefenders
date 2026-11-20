@@ -47,8 +47,8 @@ public class SpiderAllySpawnerGameTests {
 	}
 	private SpiderAlly ally(GameTestHelper h, BlockPos pos) {
 		var source = AllySpawnerData.get(h.getLevel()).source(pos);
-		h.assertTrue(source.entity != null, "Expected occupied spider source");
-		return (SpiderAlly) h.getLevel().getEntity(source.entity);
+		h.assertTrue(source.entity() != null, "Expected occupied spider source");
+		return (SpiderAlly) h.getLevel().getEntity(source.entity());
 	}
 	@GameTest(maxTicks = 2900, padding = 32)
 	public void timersCapPersistenceAndBreakCleanup(GameTestHelper h) {
@@ -58,17 +58,17 @@ public class SpiderAllySpawnerGameTests {
 		var source = data.source(pos);
 		h.assertTrue(source.kind == SpawnerKind.SPIDER_ALLY && source.readyAt == level.getGameTime() + 900,
 			"Spider must start with the shared 45-second wait");
-		h.runAtTickTime(890, () -> h.assertTrue(source.entity == null, "No early spider"));
+		h.runAtTickTime(890, () -> h.assertTrue(source.entity() == null, "No early spider"));
 		h.runAtTickTime(940, () -> {
 			SpiderAlly spider = ally(h, pos);
 			h.assertTrue(spider.getMaxHealth() == 16 && spider.getAttributeValue(Attributes.ATTACK_DAMAGE) == 2
 				&& spider.getNavigation() instanceof WallClimberNavigation, "Expected spider stats and climbing navigation");
 			spider.kill(level);
-			h.assertTrue(source.entity == null && source.readyAt == level.getGameTime() + 1800, "Shared 90-second replacement wait");
+			h.assertTrue(source.entity() == null && source.readyAt == level.getGameTime() + 1800, "Shared 90-second replacement wait");
 			var restored = AllySpawnerData.read(data.write()).source(pos);
 			h.assertTrue(restored.kind == SpawnerKind.SPIDER_ALLY && restored.readyAt == source.readyAt, "Kind and deadline must persist");
 		});
-		h.runAtTickTime(2730, () -> h.assertTrue(source.entity == null, "No early replacement"));
+		h.runAtTickTime(2730, () -> h.assertTrue(source.entity() == null, "No early replacement"));
 		h.runAtTickTime(2780, () -> {
 			SpiderAlly spider = ally(h, pos);
 			h.assertTrue(level.getEntitiesOfClass(SpiderAlly.class, spider.getBoundingBox().inflate(6),
@@ -100,6 +100,7 @@ public class SpiderAllySpawnerGameTests {
 			var enemy = EntityType.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
 			enemy.snapTo(pos.getX() + 2.5, pos.getY(), pos.getZ() + .5, 0, 0);
 			enemy.setNoAi(true);
+			enemy.setPersistenceRequired();
 			enemy.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
 			level.addFreshEntity(enemy);
 			h.startSequence().thenWaitUntil(() -> h.assertTrue(enemy.getHealth() < enemy.getMaxHealth(),
@@ -127,8 +128,26 @@ public class SpiderAllySpawnerGameTests {
 					data.toggle(pos);
 					spider.setNoAi(false);
 					spider.teleportTo(pos.getX() + 2.5, pos.getY(), pos.getZ() + .5);
-				}).thenWaitUntil(() -> h.assertTrue(spider.position().distanceToSqr(Vec3.atBottomCenterOf(pos.above())) < .1,
-					"Standing must return spider to source")).thenSucceed();
+				}).thenWaitUntil(() -> h.assertTrue(spider.onGround() && AllySpawnerManager.insideStandingArea(pos, spider.blockPosition()),
+					"Standing must return spider to the guard area")).thenSucceed();
+		});
+	}
+	@GameTest(maxTicks = 180, padding = 32)
+	public void spiderHoldsDiagonalNextToArmadillo(GameTestHelper h) {
+		BlockPos pos = place(h, true);
+		var armadillo = h.spawnWithNoFreeWill(EntityType.ARMADILLO, new Vec3(6.5, 1, 4.5));
+		h.runAtTickTime(30, () -> {
+			var spider = ally(h, pos);
+			var diagonal = pos.offset(1, 1, 1);
+			h.setBlock(new BlockPos(4, 1, 4), Blocks.STONE);
+			var post = Vec3.atBottomCenterOf(diagonal);
+			spider.teleportTo(post.x, post.y, post.z);
+			spider.setDeltaMovement(Vec3.ZERO);
+			h.assertTrue(!armadillo.isScared() && spider.distanceToSqr(armadillo) < 9, "Nearby unrolled armadillo");
+			h.startSequence().thenIdle(100).thenExecute(() -> {
+				h.assertTrue(spider.getTarget() == null && spider.position().distanceToSqr(post) < .01,
+					"Spider should neither flee the armadillo nor leave the diagonal to center itself");
+			}).thenSucceed();
 		});
 	}
 	@GameTest(padding = 24)
@@ -140,7 +159,7 @@ public class SpiderAllySpawnerGameTests {
 		var mob = kind.create(h.getLevel());
 		try {
 			Class<?> type = Class.forName("net.amemah.mobdefenders.entity.DefenderBehavior$WanderAroundSpawnerGoal");
-			var constructor = type.getDeclaredConstructor(PathfinderMob.class);
+			var constructor = type.getDeclaredConstructor(Mob.class);
 			constructor.setAccessible(true);
 			var goal = (Goal) constructor.newInstance(mob);
 			var next = type.getDeclaredField("nextAttempt");

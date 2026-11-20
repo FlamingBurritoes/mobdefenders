@@ -1,11 +1,12 @@
 package net.amemah.mobdefenders;
 
 import net.amemah.mobdefenders.spawner.AllySpawnerData;
+import net.amemah.mobdefenders.spawner.AllySpawnerManager;
 import net.amemah.mobdefenders.spawner.SpawnerKind;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
-import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -16,6 +17,39 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 public class GuardReturnGameTests {
+	@GameTest(maxTicks = 170, padding = 40, skyAccess = true)
+	public void spiderReturnsToStandingAreaBeforeStuckFallback(GameTestHelper h) {
+		returnToStandingArea(h, SpawnerKind.SPIDER_ALLY);
+	}
+	@GameTest(maxTicks = 170, padding = 40, skyAccess = true)
+	public void largeSlimeReturnsToStandingAreaBeforeStuckFallback(GameTestHelper h) {
+		returnToStandingArea(h, SpawnerKind.SLIME_ALLY);
+	}
+
+	private void returnToStandingArea(GameTestHelper h, SpawnerKind kind) {
+		// The spawner's top is blocked. Both large hitboxes can fit on the floor below it.
+		BlockPos pos = place(h, kind, new BlockPos(3, 4, 3));
+		h.setBlock(new BlockPos(3, 5, 3), Blocks.STONE);
+		h.setBlock(new BlockPos(3, 6, 3), Blocks.STONE);
+		h.runAtTickTime(30, () -> {
+			var mob = ally(h, pos);
+			h.assertTrue(mob.getBlockY() == pos.getY() - 3 && AllySpawnerManager.insideStandingArea(pos, mob.blockPosition()),
+				"Standing must spawn in its area even when the top is blocked");
+
+			Vec3 start = Vec3.atBottomCenterOf(pos.offset(3, -3, 1));
+			mob.teleportTo(start.x, start.y, start.z);
+			mob.setDeltaMovement(Vec3.ZERO);
+			mob.getNavigation().stop();
+			h.startSequence().thenWaitUntil(() ->
+				h.assertTrue(mob.onGround() && AllySpawnerManager.insideStandingArea(pos, mob.blockPosition()),
+					"Must walk/hop back to the Standing area before teleport fallback; position=" + mob.position()
+						+ ", path=" + mob.getNavigation().getPath()))
+				.thenIdle(25).thenExecute(() -> h.assertTrue(mob.onGround() && mob.getBlockY() == pos.getY() - 3
+					&& AllySpawnerManager.insideStandingArea(pos, mob.blockPosition()), "Must hold in the Standing area on the floor"))
+				.thenSucceed();
+		});
+	}
+
 	@GameTest(maxTicks = 500, padding = 40, skyAccess = true)
 	public void wanderingSpiderWalksBackInsidePatrolAfterCombat(GameTestHelper h) {
 		returnToPatrol(h, SpawnerKind.SPIDER_ALLY);
@@ -48,7 +82,7 @@ public class GuardReturnGameTests {
 	private void returnToPatrol(GameTestHelper h, SpawnerKind kind) {
 		BlockPos pos = place(h, kind, new BlockPos(1, 1, 1));
 		AllySpawnerData.get(h.getLevel()).toggle(pos);
-		PathfinderMob[] observed = {null};
+		Mob[] observed = {null};
 		Vec3[] previous = {null};
 		double[] walked = {0};
 		boolean[] returning = {false};
@@ -60,7 +94,7 @@ public class GuardReturnGameTests {
 			previous[0] = observed[0].position();
 		});
 		h.runAtTickTime(30, () -> {
-			PathfinderMob mob = ally(h, pos);
+			Mob mob = ally(h, pos);
 			mob.teleportTo(pos.getX() + 5.75, pos.getY(), pos.getZ() + 5.5);
 			mob.setDeltaMovement(Vec3.ZERO);
 			mob.getNavigation().stop();
@@ -69,6 +103,7 @@ public class GuardReturnGameTests {
 			var enemy = EntityType.ZOMBIE.create(h.getLevel(), EntitySpawnReason.COMMAND);
 			enemy.snapTo(pos.getX() + 6.5, pos.getY(), pos.getZ() + 6.5, 0, 0);
 			enemy.setNoAi(true);
+			enemy.setPersistenceRequired();
 			enemy.getAttribute(Attributes.MAX_HEALTH).setBaseValue(200);
 			enemy.setHealth(200);
 			enemy.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));
@@ -107,10 +142,10 @@ public class GuardReturnGameTests {
 		AllySpawnerData.get(h.getLevel()).source(pos).readyAt = h.getLevel().getGameTime();
 		return pos;
 	}
-	private PathfinderMob ally(GameTestHelper h, BlockPos pos) {
+	private Mob ally(GameTestHelper h, BlockPos pos) {
 		var source = AllySpawnerData.get(h.getLevel()).source(pos);
-		h.assertTrue(source.entity != null, "Expected source-bound ally");
-		return (PathfinderMob) h.getLevel().getEntity(source.entity);
+		h.assertTrue(source.entity() != null, "Expected source-bound ally");
+		return (Mob) h.getLevel().getEntity(source.entity());
 	}
 
 	private void walkAroundWall(GameTestHelper h, SpawnerKind kind) {
@@ -118,7 +153,7 @@ public class GuardReturnGameTests {
 		// Keep the whole detour inside the empty test structure, not across its enclosing barriers.
 		for (int z = 1; z <= 6; z++) for (int y = 1; y <= 3; y++)
 			h.setBlock(new BlockPos(4, y, z), Blocks.STONE);
-		PathfinderMob[] observed = {null};
+		Mob[] observed = {null};
 		Vec3[] previous = {null};
 		double[] walked = {0};
 		boolean[] arrived = {false};
@@ -132,7 +167,7 @@ public class GuardReturnGameTests {
 			previous[0] = observed[0].position();
 		});
 		h.runAtTickTime(30, () -> {
-			PathfinderMob mob = ally(h, pos);
+			Mob mob = ally(h, pos);
 			Vec3 start = new Vec3(pos.getX() + 4.5, pos.getY(), pos.getZ() + .5);
 			mob.teleportTo(start.x, start.y, start.z);
 			mob.setDeltaMovement(Vec3.ZERO);
@@ -156,7 +191,7 @@ public class GuardReturnGameTests {
 	private void unreachablePost(GameTestHelper h, SpawnerKind kind) {
 		BlockPos pos = place(h, kind, 4); // Floating post: no physically walkable route to its top.
 		h.runAtTickTime(30, () -> {
-			PathfinderMob mob = ally(h, pos);
+			Mob mob = ally(h, pos);
 			mob.teleportTo(pos.getX() + 3.5, pos.getY() - 3, pos.getZ() + .5);
 			mob.setDeltaMovement(Vec3.ZERO);
 			mob.getNavigation().stop();

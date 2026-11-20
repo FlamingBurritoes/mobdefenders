@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CFC", "FIF", "CFC"],
+  "key": {"C": "#mobdefenders:corals", "F": "minecraft:rotten_flesh", "I": "mobdefenders:iron_reinforced_planks"},
+  "result": {"id": "mobdefenders:drowned_ally_spawner", "count": 1}
+}

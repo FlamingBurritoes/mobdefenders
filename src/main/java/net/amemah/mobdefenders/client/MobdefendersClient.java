@@ -16,6 +16,14 @@ public final class MobdefendersClient implements ClientModInitializer {
 		EntityRendererRegistry.register(ModContent.SPIDER_ALLY, SpiderAllyRenderer::new);
 		ModelLayerRegistry.registerModelLayer(CreeperAllyModel.LAYER, CreeperAllyModel::createBodyLayer);
 		EntityRendererRegistry.register(ModContent.CREEPER_ALLY, CreeperAllyRenderer::new);
+		ModelLayerRegistry.registerModelLayer(EndermanAllyModel.LAYER, EndermanAllyModel::createBodyLayer);
+		EntityRendererRegistry.register(ModContent.ENDERMAN_ALLY, EndermanAllyRenderer::new);
+		ModelLayerRegistry.registerModelLayer(SlimeAllyModel.INNER, SlimeAllyModel::inner);
+		ModelLayerRegistry.registerModelLayer(SlimeAllyModel.OUTER, SlimeAllyModel::outer);
+		EntityRendererRegistry.register(ModContent.SLIME_ALLY, SlimeAllyRenderer::new);
+		ModelLayerRegistry.registerModelLayer(DrownedAllyModel.INNER, () -> DrownedAllyModel.create(0));
+		ModelLayerRegistry.registerModelLayer(DrownedAllyModel.OUTER, () -> DrownedAllyModel.create(.25F));
+		EntityRendererRegistry.register(ModContent.DROWNED_ALLY, DrownedAllyRenderer::new);
 		MenuScreens.register(ModContent.ALLY_SPAWNER_MENU, AllySpawnerScreen::new);
 	}
 }

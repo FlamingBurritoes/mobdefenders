@@ -18,21 +18,23 @@ Keep this document updated for every project task: describe the behavior, added/
 - Acquires living hostile `Enemy` mobs, excluding Creepers and **all marked defenders**, including Skeleton Allies. Never deliberately targets players, villagers or passive mobs, even in retaliation. Modded hostiles implementing vanilla's `Enemy` interface are eligible.
 - Persists instead of distance-despawning; does not prevent player sleep. Vanilla golems are prevented from targeting this friendly zombie by a narrowly scoped mixin.
 - **Sunlight cannot ignite or damage defenders or wear out their helmets.** Every current/future defender implements `entity.Defender`; the shared sunlight mixin skips vanilla `Mob.burnUndead`, even if a datapack adds the entity to `minecraft:burn_in_daylight`. The Zombie Ally also disables its zombie-specific sun-sensitivity flag. Ordinary fire/lava damage, undead vulnerabilities and zombie melee behavior remain. Water conversion is disabled so it cannot become a hostile Drowned. Spawning deliberately skips vanilla `finalizeSpawn`: no baby/jockey/leader rolls or randomized equipment. Reinforcement chance is zero.
+- Zombie Allies cannot become babies or pick up dropped items. Spawn initialization skips vanilla age and loot rolls, and the setters reject those states even when older save data requests them.
 - Uses the supplied **`zombie_ally.bbmodel` geometry and `zombie_ally.png` texture**, translated into a native model layer while retaining vanilla zombie animation, equipment and held-item rendering. No OptiFine or animation-library dependency is required.
 
 ### Spawner
 
-- Block/item IDs: **`mobdefenders:zombie_ally_spawner`**, **`mobdefenders:skeleton_ally_spawner`**, **`mobdefenders:spider_ally_spawner`** and **`mobdefenders:creeper_ally_spawner`**, all in Functional Blocks. All rules below are shared by the four source kinds. See [SHARED_SPAWNER_RULES.md](SHARED_SPAWNER_RULES.md) for the compiled checklist.
+- Block/item IDs: `mobdefenders:zombie_ally_spawner`, `mobdefenders:skeleton_ally_spawner`, `mobdefenders:spider_ally_spawner`, `mobdefenders:creeper_ally_spawner`, `mobdefenders:enderman_ally_spawner`, `mobdefenders:slime_ally_spawner` and `mobdefenders:drowned_ally_spawner`, all in Functional Blocks. See [SHARED_SPAWNER_RULES.md](SHARED_SPAWNER_RULES.md) for the compiled checklist.
 - Registry rename compatibility: old `mobdefenders:zombie_spawner` block/item lookups are redirected to the canonical zombie ID when decoding saves/stacks. New registry keys, models, textures, recipes, loot and translations use `zombie_ally_spawner`. No duplicate old block/item is registered. The old dimension SavedData storage key `mobdefenders:zombie_spawners` is intentionally retained so existing source ownership/deadlines survive; entries now save their kind, defaulting to Zombie Ally for older records.
-- Hard-coded **one owned ally per source**, with no configurable cap. Overlapping sources have separate UUID ownership.
+- Hard-coded **one owned ally per source** except Slime, which can own up to **eight** split family members. Overlapping sources have separate UUID ownership. There is no configurable cap.
 - Default full replacement delay: **90 seconds / 1,800 world ticks**, after confirmed death or permanent discard.
 - Initial placement waits half the configured delay, floored to whole seconds: **45 seconds / 900 ticks** by default. These are half the original timers. Breaking/replacing starts a fresh initial wait. Spawn attempts run once per second, so an attempt may occur up to one second after its deadline.
 - Unloading a chunk/server shutdown is not death. Sources, live UUIDs, mode and deadlines are persisted in dimension SavedData. A missing loaded entity never frees the slot, and nothing force-loads chunks.
 - Right-click opens a server-synchronized menu: **Guard Type:** above one button showing **Standing** or **Wander**. Clicking toggles the current source mode. No inventory, item input or extra buttons. Closing/reopening or restarting retains the selection.
 - **Standing** is the default: spawn centered on the block's top, stay there when idle, engage eligible nearby hostiles, then **pathfind/walk/jump back** after combat. There is no close-range snap or fixed travel-time teleport. Navigation retries once per second, targets the exact top block (zero path tolerance), discards stale partial paths and allows a bounded detour search without changing detection attributes. Movement of at least 0.25 blocks resets the stuck counter. Only **ten continuous seconds without that progress** permits a collision-checked fallback onto a safe top. Long detours can continue without a time limit while making progress. Final centering uses the movement controller, not teleportation. Obstructed top prevents initial Standing spawning; idle return waits/retries until safe. The separate twelve-block emergency recall remains unchanged.
-- **Wander**: random safe spawn around the source, then actively pathfinds between randomly chosen reachable destinations around that block while idle. If combat takes it outside the patrol area, a higher-priority return goal **walks it back inside as soon as it has no target**, then stops and resumes normal wandering. It does not need to stand on the block. This uses the shared walk-first retries/stuck fallback, with a patrol-area destination tolerance rather than Standing's exact-post tolerance. Switching to Standing still returns it to its post.
+- **Spider and Slime Standing exception:** hold any supported, dry spot in the **3×3 square** of columns (spawner plus all eight neighbors, including diagonals), with feet within three blocks vertically of the source. Return navigation selects safe candidate positions and stops once the ally is grounded inside. Spawning, emergency recall, stuck fallback and Slime merges prefer the top but can land elsewhere inside the area when the top is blocked.
+- **Wander**: random safe spawn around the source, then actively pathfinds between randomly chosen reachable destinations around that block while idle. If combat takes it outside the patrol area, a higher-priority return goal **walks it back inside as soon as it has no target**, then stops and resumes normal wandering. It does not need to stand on the block. This uses the shared walk-first retries/stuck fallback with a patrol-area destination tolerance. Switching to Standing returns it to its post or species-specific guard area.
 - Default spawn radius **3**, patrol/roam radius **6**, both measured around the source (circular horizontal plus vertical `+/- roamRadius`). Enemy detection is separately **10 blocks from the ally's current position**, using three-dimensional distance and nearest-eligible selection with **no line-of-sight requirement** for acquisition or retention. Walls do not hide enemies, but still block movement/projectiles; normal combat goals handle reaching or getting a clear shot. Vanilla non-LOS checks such as visibility scaling from invisibility are otherwise unchanged. The detector's scan/retention range is explicitly configured, not inherited from the species' follow attributes. Nearby spawn ground is searched within three blocks up/down. Spawn/return needs solid supported dry ground, available chunks, world-border clearance, no collision and no overlapping living entity.
-- The roam range is an **AI patrol/engagement range, not an invisible physics wall**. Knockback/external movement can take the ally outside it. A separate **12-block recall radius** by default (same circular horizontal plus vertical +/- interpretation) teleports a stray back onto the source block in either mode. Between six and twelve blocks, Wander can walk back naturally instead of snapping at the patrol edge. Beyond the recall radius, the block's top is preferred; if obstructed/occupied, a safe supported position in the roam range is used instead. No safe position means retry later without loading chunks or teleporting into solids. Owned allies still cannot use portals/change dimensions.
+- The roam range is an **AI patrol/engagement range, not an invisible physics wall**. Knockback/external movement can take the ally outside it. A separate recall radius (**15 blocks** in the current type defaults, overridable in JSON) teleports a stray back to its source in either mode. Between the patrol and recall boundaries, Wander can walk back naturally instead of snapping at the patrol edge. Beyond the recall radius, the block's top is preferred; if obstructed/occupied, a safe supported position in the roam range is used instead. No safe position means retry later without loading chunks or teleporting into solids. Owned allies still cannot use portals/change dimensions.
 - Destroying a source clears ownership first and kills its linked ally normally, retaining death animation/sounds. Unloaded allies enter a saved pending-death queue and die on next load. No other source's ally is affected. Source-break normal death uses Minecraft's ordinary death rules; no custom entity loot table is currently supplied.
 - Placement faces away from the player, as in the current Weed Spawner; rotations retain ownership/mode/timer. Full-cube visual/selection/collision. Dirt-like mining/shovel efficiency and self-drop.
 - Successful spawn emits vanilla smoke and spawn animation. Failed attempts do not.
@@ -52,6 +54,7 @@ Keep this document updated for every project task: describe the behavior, added/
 - Entity ID: **`mobdefenders:spider_ally`**; block/item: **`mobdefenders:spider_ally_spawner`**. No natural spawning or spawn egg. Spawner craftable using the recipe below, available in Functional Blocks and with `/give @s mobdefenders:spider_ally_spawner`.
 - Vanilla spider baseline: **16 health, 2 attack damage, approximately 0.3 movement speed**, spider sounds, wall-climbing navigation, poison/cobweb resistance and leap/melee combat. Uses ordinary melee AI instead of the vanilla spider attack goal that randomly abandons enemies in daylight; no hostile skeleton jockeys or random Hard-mode potion buffs.
 - Implements `Defender` and shares all player/friendly/Creeper exclusions, ten-block no-LOS detection, sunlight protection, Standing/Wander patrol/return, ownership, timers, cap, recall, cleanup, portal and sleep rules. Ordinary fire/lava can still hurt it.
+- Uses custom goals without vanilla armadillo avoidance; nearby armadillos do not cause it to flee.
 - Uses original `spider_ally.bbmodel` boxes, non-mirrored 64x32 UVs and group pivots, with vanilla resting leg rotations so native spider head/eight-leg animation has the correct splayed stance. No vanilla red-eye overlay covers the supplied texture. Both PNGs are copied byte-for-byte; spawner uses the supplied full cube/all-face texture with north/east/south/west blockstate rotations.
 
 ### Creeper Ally
@@ -62,6 +65,27 @@ Keep this document updated for every project task: describe the behavior, added/
 - Uses the same monster filter as every other ally: spiders, piglins, zombified piglins and endermen are eligible for targeting/blast damage. The user's passive-mob protection does not mean excluding vanilla neutral-monster families. Other defenders and hostile Creepers remain excluded.
 - Ally detonation suppresses vanilla unfiltered lingering-potion clouds and secondary death-effect hooks so the blast cannot leave a harmful friendly-area effect. Self-detonation permanently discards the ally and starts the normal 90-second replacement delay; no instant respawn.
 - Supplied `creeper_ally.bbmodel` has exactly vanilla's six boxes/64x32 UVs/group pivots. The native creeper model and renderer retain walking/head animation, swelling/flashing and charged overlay while using the original ally texture.
+
+### Enderman Ally
+
+- `mobdefenders:enderman_ally` uses vanilla Enderman attributes (40 health), melee movement, combat speed boost, sounds and animations. Player eye contact and player attacks do not provoke it. It enters the vanilla angry pose when engaging a valid enemy, including retaliation when an eligible monster attacks it, and calms down once it drops its target.
+- Immune to water, rain, drowning and clean-water splash bottles. No block pickup, carrying or placement. It does not flee daylight; defensive teleporting only occurs during combat and, for an owned ally, can only land at a safe spot inside patrol. Normal pathfinding-first guard return and emergency recall are still shared.
+- The supplied body, head, inset headwear, mirrored limbs and pivots are baked into the vanilla Enderman animation hierarchy. The original blue eyes are retained rather than overlaid with vanilla purple eyes.
+- Its directional spawner uses shared ownership, timers, Standing/Wander, targeting and cleanup. Its built-in settings are 90 seconds replacement, 3-block spawn, 6-block patrol, 15-block recall and 10-block detection. Existing explicit JSON values still take precedence.
+
+### Drowned Ally
+
+- `mobdefenders:drowned_ally` uses Normal-mode stats (20 HP, 2 armor, 3 melee damage, 0.23 base movement speed), a guaranteed plain trident and no other equipment. No loot pickup, hostile vanilla targeting, turtle/egg hunting, water-seeking, random gear or jockeys. Wears out neither its issued trident nor its stock of throws.
+- Uses the shared hostile filter and detection. Throws a real, non-recoverable trident with vanilla Normal launch stats (speed 1.6, inaccuracy 6, 40-tick interval); can also strike every 20 ticks within melee reach, without interrupting throws. Projectiles still obey physical obstruction and friendly filtering.
+- Waterloggable `mobdefenders:drowned_ally_spawner` supports safe spawn/recall under water while retaining the shared one-ally lifecycle. Standing holds the post immediately above the block. Wander stays in the post's medium, with the configured horizontal patrol radius and a maximum of **7 blocks above or below the spawner block** while swimming. Combat pursuit is still subject to normal recall rather than the idle swimming bound.
+- Uses the supplied inner/outer 64×64 textures and model geometry with native swim, walk and trident animations.
+
+### Slime Ally
+
+- `mobdefenders:slime_ally` uses native slime sounds and squish animations, supplied 64×32 art, and follows shared patrol/guard paths by hopping. Like other defenders, it attacks eligible monsters, not players, passive mobs, Creepers or other defenders. Even the smallest tier can attack.
+- An initial spawn or replacement is one large slime. On death, each non-small owned slime makes exactly two of the next tier, at full tier health. Large **18 HP / 5 attack** → semi-large **12 / 3.5** → medium **8 / 2** → small **4 / 1**. The spawner tracks up to eight UUIDs and only starts the replacement timer when its last member is gone. Unloaded members retain ownership. Breaking the spawner retires all members without splitting them.
+- With at least two survivors, **400 consecutive ticking ticks (20 seconds)** with no detectable enemy near any member allow a merge. The quiet window restarts on enemy detection, splits, or when any member is unavailable; it is not carried across server restarts. Standing merges on the spawner top or another safe spot in the 3×3 area; Wander finds a safe point within patrol. If no position fits the large hitbox, it retries without consuming survivors. The old members are removed without drops or another split once the new large slime is added.
+- A merged large slime has 18 max HP and current HP of **18 × Σ(size weight × current HP / max HP) ÷ 8**, clamped to 1–18. Size weights from large to small are **8, 4, 2, 1**. Two semi-large survivors, one at 12 HP and one at 6 HP, produce a large slime with 13.5 HP.
 
 ### Iron Reinforced Planks
 
@@ -77,6 +101,28 @@ Keep this document updated for every project task: describe the behavior, added/
 ### Recipes
 
 Each recipe outputs **one** block.
+
+Drowned Ally Spawner (`C` = any coral, including live/dead plants, fans and blocks; `F` = Rotten Flesh; `I` = Iron Reinforced Planks):
+
+```text
+CFC
+FIF
+CFC
+```
+
+Enderman and Slime Ally Spawners (`E` = Ender Pearl, `S` = Slimeball, `I` = Iron Reinforced Planks), respectively:
+
+```text
+EEE
+EIE
+EEE
+```
+
+```text
+SSS
+SIS
+SSS
+```
 
 Creeper Ally Spawner (`G` = Gunpowder; `I` = Iron Reinforced Planks):
 
@@ -148,9 +194,9 @@ Created at `config/mobdefenders.json` on server/world startup. Settings resolve 
 }
 ```
 
-Valid override keys: `zombie_ally_spawner`, `skeleton_ally_spawner`, `spider_ally_spawner`, `creeper_ally_spawner` (optionally prefixed `mobdefenders:`). Any/all five settings can be overridden independently. In this example skeleton/spider retain the explicitly shared values, zombie replacement/initial waits are 60/30 seconds, and creeper waits are 120/60 seconds with eight-block detection. Empty shared/type objects do not erase species defaults.
+Valid override keys: `zombie_ally_spawner`, `skeleton_ally_spawner`, `spider_ally_spawner`, `creeper_ally_spawner`, `enderman_ally_spawner`, `slime_ally_spawner`, `drowned_ally_spawner` (optionally prefixed `mobdefenders:`). Any/all five settings can be overridden independently. Empty shared/type objects do not erase species defaults.
 
-**To change each species' built-in defaults in Java**, edit `defaults(SpawnerKind kind)` in `src/main/java/net/amemah/mobdefenders/config/AllySpawnerConfig.java`. Each switch arm has its own `new Settings(replacementSeconds, spawnRadius, patrolRadius, recallRadius, detectionRadius)`. All four currently retain `90, 3, 6, 12, 10`; changing one arm affects that species wherever JSON does not explicitly override the field. Rebuild/install the JAR and restart. Initial wait remains half the resulting replacement delay.
+**To change each species' built-in defaults in Java**, edit `defaults(SpawnerKind kind)` in `src/main/java/net/amemah/mobdefenders/config/AllySpawnerConfig.java`. Each switch arm has its own `new Settings(replacementSeconds, spawnRadius, patrolRadius, recallRadius, detectionRadius)`. The current species arms use `90, 3, 6, 15, 10` except Creeper, which uses a 60-second replacement delay. Changing one arm affects that species wherever JSON does not explicitly override the field. Rebuild/install the JAR and restart. Initial wait remains half the resulting replacement delay.
 
 New config files contain `{"defaults": {}, "spawners": {}}`, so they follow editable per-species code defaults instead of freezing those values into JSON. **Existing explicit JSON values still win**, including fields in older flat files: remove the corresponding shared/type field if you want changes in Java to take effect. Existing configs are not rewritten automatically.
 
@@ -175,6 +221,12 @@ Source art is in `../Useful Vanilla Textures/mobdefenders/` (outside this mod pr
 | `creeper ally/creeper_ally.bbmodel` | `client/CreeperAllyModel.java` and `textures/entity/creeper_ally.png` |
 | `creeper ally/creeper_spawner_block.bbmodel` | `models/block/creeper_ally_spawner.json` and `textures/block/creeper_ally_spawner.png` |
 | `iron_reinforced_plank.bbmodel` | `models/block/iron_reinforced_planks.json` and `textures/block/iron_reinforced_plank.png` |
+| `enderman ally/enderman_ally.bbmodel` | `client/EndermanAllyModel.java` and `textures/entity/enderman_ally.png` |
+| `enderman ally/enderman_ally_spawner.bbmodel` | `models/block/enderman_ally_spawner.json` and `textures/block/enderman_ally_spawner.png` |
+| `slime ally/slime_ally.bbmodel` | `client/SlimeAllyModel.java` and `textures/entity/slime_ally.png` |
+| `slime ally/slime_ally_spawner.bbmodel` | `models/block/slime_ally_spawner.json` and `textures/block/slime_ally_spawner.png` |
+| `drowned ally/drowned_ally.bbmodel` | `client/DrownedAllyModel.java` and `textures/entity/drowned_ally_{inner,outer}.png` |
+| `drowned ally/drowned_ally_spawner.bbmodel` | `models/block/drowned_ally_spawner.json` and `textures/block/drowned_ally_spawner.png` |
 | `copper_reinorced_plank.bbmodel` (original filename typo retained) | `models/block/copper_reinforced_planks.json` and `textures/block/copper_reinforced_plank.png` |
 
 - The zombie is an **OptiFine CEM-format** Blockbench project, but its seven cubes and standard pivots need no OptiFine runtime. Native conversion uses `(-x, 24-y, z)` coordinates, a 64x64 texture, original box-UV offsets and mirrored left arm/leg regions. It preserves the exact supplied leg bounds around the +/-1.9 pivots, rather than silently substituting vanilla's slightly shifted bounds.
@@ -184,7 +236,7 @@ Source art is in `../Useful Vanilla Textures/mobdefenders/` (outside this mod pr
 - All three external PNGs matched their corresponding embedded `.bbmodel` textures byte-for-byte. Runtime PNGs are copied unchanged: no resizing, repainting or UV relocation.
 - Canonical block IDs are `copper_reinforced_planks`, `zombie_ally_spawner` and `skeleton_ally_spawner`. Legacy zombie block/item ID decoding is supported as described above. The singular supplied plank texture filename is intentional.
 - Skeleton entity PNG and the spawner's referenced texture were extracted byte-for-byte from the supplied models. The spawner project names texture 0 `skeleton_spawner.png`; its runtime copy is renamed `skeleton_ally_spawner.png`. Its second `oak_planks_copper.png` texture is unused by every face and is not imported.
-- Spider entity/spawner PNGs are copied byte-for-byte from the supplied external files and also match the embedded textures. Enderman/template art remains outside this task.
+- Spider and Enderman entity/spawner PNGs are copied byte-for-byte from the supplied external files.
 
 To update textures, replace the corresponding PNG under `src/main/resources/assets/mobdefenders/textures/`, rebuild and install the new JAR. Geometry edits in `.bbmodel` require updating the native entity model layer or exported block JSON as appropriate; `.bbmodel` files are not runtime Minecraft models. Keep original UVs/dimensions unless deliberately changing the model. Client visual checks remain necessary.
 
@@ -203,6 +255,7 @@ Under `src/main/java/net/amemah/mobdefenders/`:
 | `entity/SkeletonAlly.java` | Vanilla skeleton bow/strafe AI with normal-mode projectile stats, shared friendliness and no Stray conversion. |
 | `entity/SpiderAlly.java` | Vanilla climbing/leap/melee movement with shared defender rules, no daylight target abandonment or hostile jockeys. |
 | `entity/CreeperAlly.java` | Vanilla fuse/chase with terrain-safe blast using the shared monster filter; protects players, defenders, passive mobs and golems. |
+| `entity/EndermanAlly.java` | Combat-only native anger pose and defensive teleport, water immunity and no block handling. |
 | `entity/DefenderBehavior.java` | Shared enemy filtering, guard return, source-centered wandering and 3–5 second patrol pause for every ally. |
 | `entity/Defender.java` | Shared sunlight-safe marker required for all current/future friendly defenders. |
 | `block/AllySpawnerBlock.java` | Shared placement/facing, source lifecycle/kind and right-click menu; renamed from ZombieSpawnerBlock. |
@@ -220,6 +273,7 @@ Under `src/main/java/net/amemah/mobdefenders/`:
 | `client/SpiderAllyRenderer.java` | Supplied spider layer/texture without vanilla hostile-eye overlay. |
 | `client/CreeperAllyModel.java` | Native vanilla layer matching all supplied creeper boxes, UVs and pivots. |
 | `client/CreeperAllyRenderer.java` | Original ally texture with native walking, fuse swelling/flashing and charged overlay. |
+| `client/EndermanAllyModel.java` / `EndermanAllyRenderer.java` | Supplied 64×32 art and transformed pivots with vanilla walk, combat pose and jitter. |
 | `client/AllySpawnerScreen.java` | Shared Guard Type label/button; renamed from ZombieSpawnerScreen. |
 | `mixin/FriendlyGolemMixin.java` | Excludes all marked defenders from vanilla golem attack/target acquisition. |
 | `mixin/SunSafeDefenderMixin.java` | Skips vanilla sunlight ignition and helmet wear for all marked defenders, without making them fireproof. |
@@ -427,3 +481,35 @@ Under `src/main/resources/`:
 
 - Checked the reported unresolved `FriendlyCreeperExplosionMixin` entry: the Java file is in the configured `net.amemah.mobdefenders.mixin` package, the JAR contains the class, and all 47 server GameTests passed. No mixin or gameplay code changed. Reload the project from the Gradle tool window in IntelliJ; if the warning persists, check that `src/main/java` is a source root and the Gradle JVM uses Java 25.
 - The full build separately reported four configuration unit-test failures: those assertions still expect the previous 12-block recall default, while the current per-kind Java settings use 15. Existing per-kind settings were left untouched.
+
+### 2026-11-20 — Enderman Ally and directional spawner
+
+- Added `entity/EndermanAlly.java` with eligible-enemy melee and retaliation, native combat pose, water immunity, no stare response or block handling, and defensive teleports bounded by patrol. Registered the fifth species in `ModContent.java`, `spawner/SpawnerKind.java` and `config/AllySpawnerConfig.java`; existing source management, ownership and menu code are reused. Existing species settings and installed configs are untouched.
+- Added `client/EndermanAllyModel.java` and `EndermanAllyRenderer.java` and registered them in `MobdefendersClient.java`. Copied the supplied textures unchanged; added directional blockstate, cube model, item, self-drop loot and the four-pearl cross recipe, plus translations and shovel tag.
+- Added `EndermanAllySpawnerGameTests.java` and `EndermanAllyModelTest.java`; extended shared targeting, config, facing and daylight test fixtures. Updated config test expectations that assumed the previous 12-block recall fallback; they now check the appropriate per-kind fallback without changing those settings.
+- Updated `README.md` and `SHARED_SPAWNER_RULES.md`. Made combat fixtures in the existing Creeper, Zombie, Skeleton, Spider, detection and guard-return GameTests persistent so a distant mock player in another simultaneous test cannot despawn them.
+- Verification: full build passed with **28 JUnit tests and 52 server GameTests**. Coverage includes player eye contact and hits, enemy combat and calming down, water and splash immunity, block handling, daylight safety, patrol and recall, and the exact crafting recipe. All 45 source JSON files parse; runtime textures match both the supplied PNGs and their embedded copies byte-for-byte. Release JAR contains the Enderman classes, textures and recipe and excludes test classes. Whitespace checks passed. Client visuals were not checked in-game.
+
+### 2026-11-21 — Slime Ally family and Enderman recipe
+
+- Added `entity/SlimeAlly.java` with four stat tiers and path-based hopping, plus `mixin/SlimeAllySplitMixin.java` to suppress vanilla's random split only for allies. `spawner/SlimeFamily.java` owns exact splits and timed health-weighted merges. Updated `AllySpawnerData.java` and `AllySpawnerManager.java` for bounded UUID rosters, atomic member changes, and idle timing; old single-UUID save entries remain compatible. Generalized shared guard goals in `DefenderBehavior.java` from `PathfinderMob` to `Mob` for native slimes.
+- Registered the species in `ModContent.java`, `SpawnerKind.java`, `AllySpawnerConfig.java`, and `MobdefendersClient.java`. Added `SlimeAllyModel.java`, `SlimeAllyRenderer.java`, supplied runtime PNGs, directional blockstate, full cube model, item model, loot, recipe, translations and shovel tag. Changed Enderman's recipe and fixture from four to eight Ender Pearls around iron reinforced planks.
+- Added `SlimeAllySpawnerGameTests.java` for splits, ownership, replacement, merge timing/health, shared patrol and combat, source cleanup and crafting. Updated the shared config, daylight, resource and spawner test fixtures for the new species and ownership accessor; updated `README.md` and `SHARED_SPAWNER_RULES.md`.
+- Verification: full build passed with **28 JUnit tests and 57 server GameTests**. All 50 source JSON files parse; both Slime textures match the supplied PNGs and the embedded textures byte-for-byte. The release JAR contains Slime classes, textures and both updated recipes and excludes GameTests. Whitespace checks passed. Slime visuals were not checked in-game.
+
+### 2026-11-21 — Drowned Ally and underwater patrol
+
+- Added `DrownedAlly.java` (Normal combat stats, permanent trident, no pickup, amphibious movement), `DrownedAllySpawnerBlock.java` (waterlogging) and registration/config entries in `ModContent.java`, `SpawnerKind.java` and `AllySpawnerConfig.java`. Generalized only the amphibious branches in `DefenderBehavior.java` and `AllySpawnerManager.java`; the common spawning, ownership, recovery and mode logic still applies.
+- Added `DrownedAllyModel.java`, `DrownedAllyRenderer.java`, supplied texture copies, directional spawner assets, recipe and coral item tag, loot, translations and shovel tag. Updated `MobdefendersClient.java`.
+- Added `DrownedAllySpawnerGameTests.java`; updated shared config, spawn model facing and test daylight fixtures. Full build passed with **28 JUnit tests and 61 server GameTests**, including submerged spawning and guard return, the seven-block limit in both directions, concurrent melee and trident throws, and the coral recipe. All 56 source JSON files parse; all three supplied textures match the embedded Blockbench PNGs byte-for-byte. Release JAR and whitespace checks passed. Client visuals were not checked in-game.
+
+### 2026-11-21 — Adult Zombie Allies and wider Standing guard
+
+- Updated `ZombieAlly.java` to reject baby and item-pickup flags from spawning, setters and saved entities. Documented the intentional absence of armadillo avoidance in `SpiderAlly.java`.
+- Updated `SpawnerKind.java`, `DefenderBehavior.java` and `AllySpawnerManager.java` with a shared 3×3 Standing area for Spider and Slime, including dry supported ground within three blocks vertically of the source. Slime merges use the existing shared placement helper. Other species keep their exact posts and Wander is unchanged. No art, configuration or save format changes.
+- Extended `ZombieAllySpawnerGameTests.java`, `SpiderAllySpawnerGameTests.java` and `GuardReturnGameTests.java` to cover saved age/loot flags, a real item drop, diagonal holding beside an armadillo, spawning at a blocked post and returning to the area before the fallback. Full build passed with **28 JUnit tests and 65 server GameTests**. Release JAR and whitespace checks passed.
+
+### 2026-11-21 — Deprecated GameTest player helper
+
+- Replaced the two uses of Minecraft's removal-marked `makeMockServerPlayerInLevel()` in `EndermanAllySpawnerGameTests.java` and `CreeperAllySpawnerGameTests.java` with a shared Fabric `FakePlayer` fixture in `GameTestPlayers.java`. It registers a survival player with the level and allows damage, so the stare, retaliation and blast tests still exercise the server player paths. No gameplay, save, config or art changes.
+- Verification: full build passed with **28 JUnit tests and 65 server GameTests**. GameTest compilation no longer reports the two removal warnings.
