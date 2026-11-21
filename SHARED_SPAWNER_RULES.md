@@ -27,7 +27,7 @@ Applies to **Zombie, Skeleton, Spider, Creeper, Enderman, Slime and Drowned Ally
 - **Standing:** spawn on top of the source, hold that post while idle, engage eligible enemies, then return to the exact post.
 - **Spider and Slime Standing exception:** the spawner column and all eight adjacent columns form a **3×3 square**, including diagonals. Hold any dry, supported spot in that area within three blocks vertically of the source. Spawning, emergency recall and Slime merges prefer the top, but can use another safe spot in the square. Return paths target the area, not the center.
 - **Wander:** spawn near the source and choose safe reachable destinations within the **six-block patrol area**.
-- A Drowned with an underwater post swims within the same horizontal radius and at most seven blocks above or below the source. A dry-post Drowned does not seek water.
+- A Drowned Ally breathes underwater indefinitely. With an underwater post it swims within the same horizontal radius and at most seven blocks above or below the source; a dry-post Drowned does not seek water.
 - Every ally pauses a randomized **3–5 seconds** between patrol walks. Combat and guard return are not delayed by the idle cooldown.
 - If combat takes a Wander ally outside patrol, it **walks back inside after it has no enemy**, then resumes wandering. It need not stand on the source.
 

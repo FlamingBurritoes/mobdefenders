@@ -65,6 +65,28 @@ public class DrownedAllySpawnerGameTests {
 		});
 	}
 
+	@GameTest(maxTicks = 500, padding = 36, skyAccess = true)
+	public void submergedStandingGuardNeverRunsOutOfAir(GameTestHelper h) {
+		for (int x = 2; x <= 4; x++) for (int z = 2; z <= 4; z++) for (int y = 1; y <= 7; y++)
+			h.setBlock(new BlockPos(x, y, z), Blocks.WATER);
+		var source = place(h, new BlockPos(3, 4, 3), true);
+		h.onEachTick(() -> {
+			if (h.getTick() >= 30 && h.getTick() < 430)
+				h.assertTrue(ally(h, source).isUnderWater(), "Guard must remain fully submerged for the whole test");
+		});
+		h.runAtTickTime(30, () -> {
+			var ally = ally(h, source);
+			h.assertTrue(ally.canBreatheUnderwater(), "Drowned Ally must inherit underwater breathing from its entity-type tag");
+			int air = ally.getAirSupply();
+			h.runAtTickTime(430, () -> {
+				h.assertTrue(ally.isUnderWater() && 400 > ally.getMaxAirSupply(), "Fixture outlasts the normal air limit");
+				h.assertTrue(ally.isAlive() && ally.getHealth() == ally.getMaxHealth() && ally.getAirSupply() >= air,
+					"Drowned Ally must not lose air or take drowning damage");
+				h.succeed();
+			});
+		});
+	}
+
 	@GameTest(maxTicks = 150, padding = 36, skyAccess = true)
 	public void underwaterIdleMovementCannotCrossSevenBlockCeilingOrFloor(GameTestHelper h) {
 		// Use an elevated column so both vertical boundaries are in the water.

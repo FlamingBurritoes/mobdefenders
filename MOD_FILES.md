@@ -78,6 +78,7 @@ Keep this document updated for every project task: describe the behavior, added/
 - `mobdefenders:drowned_ally` uses Normal-mode stats (20 HP, 2 armor, 3 melee damage, 0.23 base movement speed), a guaranteed plain trident and no other equipment. No loot pickup, hostile vanilla targeting, turtle/egg hunting, water-seeking, random gear or jockeys. Wears out neither its issued trident nor its stock of throws.
 - Uses the shared hostile filter and detection. Throws a real, non-recoverable trident with vanilla Normal launch stats (speed 1.6, inaccuracy 6, 40-tick interval); can also strike every 20 ticks within melee reach, without interrupting throws. Projectiles still obey physical obstruction and friendly filtering.
 - Waterloggable `mobdefenders:drowned_ally_spawner` supports safe spawn/recall under water while retaining the shared one-ally lifecycle. Standing holds the post immediately above the block. Wander stays in the post's medium, with the configured horizontal patrol radius and a maximum of **7 blocks above or below the spawner block** while swimming. Combat pursuit is still subject to normal recall rather than the idle swimming bound.
+- Like vanilla Drowned, Drowned Allies breathe underwater indefinitely and do not lose air while submerged.
 - Uses the supplied inner/outer 64×64 textures and model geometry with native swim, walk and trident animations.
 
 ### Slime Ally
@@ -513,3 +514,9 @@ Under `src/main/resources/`:
 
 - Replaced the two uses of Minecraft's removal-marked `makeMockServerPlayerInLevel()` in `EndermanAllySpawnerGameTests.java` and `CreeperAllySpawnerGameTests.java` with a shared Fabric `FakePlayer` fixture in `GameTestPlayers.java`. It registers a survival player with the level and allows damage, so the stare, retaliation and blast tests still exercise the server player paths. No gameplay, save, config or art changes.
 - Verification: full build passed with **28 JUnit tests and 65 server GameTests**. GameTest compilation no longer reports the two removal warnings.
+
+### 2026-11-21 — Drowned Ally underwater breathing
+
+- Added `data/minecraft/tags/entity_type/can_breathe_under_water.json` to opt the custom Drowned Ally type into Minecraft's underwater breathing without changing its other entity-type traits. This applies to existing and new allies. No asset, configuration or save changes.
+- Added a Standing regression in `DrownedAllySpawnerGameTests.java` that keeps the guard submerged past the normal air limit and checks its air and health.
+- Verification: full build passed with **28 JUnit tests and 66 server GameTests**, including 20 seconds continuously submerged without air or health loss.
