@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": ["GGG", "GNG", "GGG"],
+  "key": {"G": "minecraft:gold_ingot", "N": "minecraft:nether_brick"},
+  "result": {"id": "mobdefenders:gold_reinforced_nether_brick", "count": 1}
+}

@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["MMM", "MGM", "MMM"],
+  "key": {"M": "minecraft:magma_cream", "G": "mobdefenders:gold_reinforced_nether_brick"},
+  "result": {"id": "mobdefenders:magma_cube_ally_spawner", "count": 1}
+}

@@ -62,6 +62,11 @@ public final class AllySpawnerConfig {
 			case ENDERMAN_ALLY -> new Settings(90, 3, 6, 15, 10);
 			case SLIME_ALLY -> new Settings(90, 3, 6, 15, 10);
 			case DROWNED_ALLY -> new Settings(90, 3, 6, 15, 10);
+			case BRUTE_ALLY -> new Settings(90, 3, 6, 15, 10);
+			case MAGMA_CUBE_ALLY -> new Settings(90, 3, 6, 15, 10);
+			case BLAZE_ALLY -> new Settings(90, 3, 6, 15, 10);
+			case GHAST_ALLY -> new Settings(90, 3, 6, 15, 10);
+			case WITHER_SKELETON_ALLY -> new Settings(90, 3, 6, 15, 10);
 		};
 	}
 

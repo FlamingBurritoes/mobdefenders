@@ -1,4 +1,4 @@
 {
   "replace": false,
-  "values": ["mobdefenders:zombie_ally", "mobdefenders:skeleton_ally", "mobdefenders:spider_ally", "mobdefenders:creeper_ally", "mobdefenders:enderman_ally", "mobdefenders:slime_ally", "mobdefenders:drowned_ally"]
+  "values": ["mobdefenders:zombie_ally", "mobdefenders:skeleton_ally", "mobdefenders:spider_ally", "mobdefenders:creeper_ally", "mobdefenders:enderman_ally", "mobdefenders:slime_ally", "mobdefenders:drowned_ally", "mobdefenders:brute_ally", "mobdefenders:magma_cube_ally", "mobdefenders:blaze_ally", "mobdefenders:ghast_ally", "mobdefenders:wither_skeleton_ally"]
 }

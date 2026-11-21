@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["BBB", "BGB", "BBB"],
+  "key": {"B": "minecraft:blaze_rod", "G": "mobdefenders:gold_reinforced_nether_brick"},
+  "result": {"id": "mobdefenders:blaze_ally_spawner", "count": 1}
+}

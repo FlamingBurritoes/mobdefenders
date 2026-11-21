@@ -117,7 +117,7 @@ public final class AllySpawnerData extends SavedData {
 			entry.putString("kind", source.kind.name());
 			entry.putLong("ready_at", source.readyAt);
 			entry.putBoolean("standing", source.standing);
-			if (source.kind == SpawnerKind.SLIME_ALLY) {
+			if (source.kind.hasSplitFamily()) {
 				ListTag members = new ListTag();
 				for (UUID uuid : source.entities) {
 					CompoundTag member = new CompoundTag();

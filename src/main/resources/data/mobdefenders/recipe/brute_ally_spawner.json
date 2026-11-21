@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["MAM", "MNM", "MGM"],
+  "key": {
+    "M": "minecraft:gold_nugget",
+    "A": "minecraft:golden_axe",
+    "N": "mobdefenders:gold_reinforced_nether_brick",
+    "G": "minecraft:gold_block"
+  },
+  "result": {"id": "mobdefenders:brute_ally_spawner", "count": 1}
+}

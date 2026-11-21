@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SpiderSpawnerResourcesTest {
 	@Test void facingVariantsRotateEverySpawnerModel() throws Exception {
-		for (String species : new String[]{"zombie", "skeleton", "spider", "creeper", "enderman", "slime", "drowned"}) checkFacing(species);
+		for (String species : new String[]{"zombie", "skeleton", "spider", "creeper", "enderman", "slime", "drowned", "brute", "magma_cube", "blaze", "ghast", "wither_skeleton"}) checkFacing(species);
 	}
 	private void checkFacing(String species) throws Exception {
 		String name = species + "_ally_spawner";

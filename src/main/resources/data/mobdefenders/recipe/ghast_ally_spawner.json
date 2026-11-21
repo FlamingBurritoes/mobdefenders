@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["TUT", "UGU", "TUT"],
+  "key": {"T": "minecraft:ghast_tear", "U": "minecraft:gunpowder", "G": "mobdefenders:gold_reinforced_nether_brick"},
+  "result": {"id": "mobdefenders:ghast_ally_spawner", "count": 1}
+}

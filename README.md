@@ -1,6 +1,6 @@
 # Mob Defenders
 
-Player-friendly zombie, skeleton, spider, creeper, enderman, slime and drowned guards for Fabric Minecraft 26.1.2. Craft and place an Ally Spawner, then right-click to select **Standing** or **Wander**. Each source has configurable spawn timers and safe emergency recall. The Slime Spawner tracks up to eight split family members; other spawners track one ally. Drowned Spawners also work underwater, with a seven-block vertical patrol limit.
+Player-friendly mob guards for Fabric Minecraft 26.1.2, including Wither Skeleton Allies that inflict Wither on enemies. Craft and place an Ally Spawner, then right-click to select **Standing** or **Wander**. Each source has configurable spawn timers and safe emergency recall. Slime and Magma Cube Spawners track up to eight and four split family members, respectively; other spawners track one ally. Drowned Spawners work underwater, and Blaze and Ghast Allies can patrol up to seven blocks above their spawner.
 
 See [MOD_FILES.md](MOD_FILES.md) for gameplay rules, configuration, recipes, file inventory, supplied-model editing instructions and the ongoing change log. Uses the supplied art with vanilla entity animation. Defenders are sunlight-safe and fight monsters other than Creepers; skeleton arrows avoid friendly fire. All allies pause 3–5 seconds between patrol walks.
 

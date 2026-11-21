@@ -1,10 +1,10 @@
 package net.amemah.mobdefenders.spawner;
 
 import net.amemah.mobdefenders.config.AllySpawnerConfig;
+import net.amemah.mobdefenders.entity.AerialDefender;
 import net.amemah.mobdefenders.entity.Defender;
 import net.amemah.mobdefenders.entity.DefenderBehavior;
 import net.amemah.mobdefenders.entity.DrownedAlly;
-import net.amemah.mobdefenders.entity.SlimeAlly;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.*;
 import net.minecraft.core.BlockPos;
@@ -13,6 +13,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.level.pathfinder.Path;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.AABB;
@@ -28,7 +29,8 @@ public final class AllySpawnerManager {
 			if (entity instanceof Defender && entity.level() instanceof ServerLevel server) {
 				var data = AllySpawnerData.get(server);
 				var source = data.owner(entity.getUUID());
-				if (entity instanceof SlimeAlly slime && source != null && SlimeFamily.split(server, data, source, slime)) return;
+				if (entity instanceof Slime cube && source != null && source.kind.hasSplitFamily()
+					&& SpawnerKind.forEntity(cube) == source.kind && CubeFamily.split(server, data, source, cube)) return;
 				data.death(entity.getUUID(), server.getGameTime());
 			}
 		});
@@ -65,7 +67,7 @@ public final class AllySpawnerManager {
 					}
 				}
 			}
-			if (source.kind == SpawnerKind.SLIME_ALLY) SlimeFamily.tryMerge(level, data, source);
+			if (source.kind.hasSplitFamily()) CubeFamily.tryMerge(level, data, source);
 			if (level.getGameTime() % 20 != 0 || !level.hasChunkAt(source.pos)) continue;
 			if (!level.getBlockState(source.pos).is(source.kind.block())) {
 				data.unregister(level, source.pos);
@@ -141,24 +143,30 @@ public final class AllySpawnerManager {
 		if (source.standing && safe(level, ally, top, ignore)) return top;
 		if (source.standing && !recall) return null;
 		boolean underwater = DefenderBehavior.underwaterPatrol(level, ally, source.pos);
+		boolean flying = ally instanceof AerialDefender;
 		int roam = AllySpawnerConfig.get(source.kind).roamRadius();
-		int height = underwater && recall ? DefenderBehavior.UNDERWATER_ROAM_HEIGHT : 3;
+		int height = flying && recall ? AerialDefender.ROAM_HEIGHT : underwater && recall ? DefenderBehavior.UNDERWATER_ROAM_HEIGHT : 3;
 		for (int i = 0; i < 48; i++) {
 			int dx = level.getRandom().nextInt(radius * 2 + 1) - radius;
 			int dz = level.getRandom().nextInt(radius * 2 + 1) - radius;
 			if ((dx == 0 && dz == 0) || dx * dx + dz * dz > radius * radius) continue;
-			for (int dy = height; dy >= -height; dy--) {
+			for (int dy = height; dy >= (flying ? 0 : -height); dy--) {
 				Vec3 point = new Vec3(source.pos.getX() + dx + .5, source.pos.getY() + dy, source.pos.getZ() + dz + .5);
 				if (ally instanceof DrownedAlly
 					&& level.getFluidState(BlockPos.containing(point)).is(FluidTags.WATER) != underwater) continue;
-				if ((underwater ? insideHorizontal(source.pos, point, roam) : inside(source.pos, point, roam))
-					&& safe(level, ally, point, ignore)) return point;
+				if ((underwater || flying ? insideHorizontal(source.pos, point, roam) : inside(source.pos, point, roam))
+					&& (flying && recall ? safeFlight(level, ally, point) : safe(level, ally, point, ignore))) return point;
 			}
 		}
 		return null;
 	}
 	public static boolean safe(ServerLevel level, Mob ally, Vec3 point) {
 		return safe(level, ally, point, e -> false);
+	}
+	public static boolean safeFlight(ServerLevel level, Mob ally, Vec3 point) {
+		BlockPos feet = BlockPos.containing(point);
+		return safe(level, ally, point, e -> false, false)
+			&& level.getFluidState(feet).isEmpty() && level.getFluidState(feet.above()).isEmpty();
 	}
 	static boolean safe(ServerLevel level, Mob ally, Vec3 point, Predicate<Entity> ignore) {
 		return safe(level, ally, point, ignore, true);

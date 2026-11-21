@@ -27,6 +27,9 @@ public final class DefenderBehavior {
 		return mob instanceof DrownedAlly && level.getFluidState(source.above()).is(FluidTags.WATER);
 	}
 	private static boolean insidePatrol(Mob mob, BlockPos source, Vec3 point, int radius) {
+		if (mob instanceof AerialDefender)
+			return AllySpawnerManager.insideHorizontal(source, point, radius)
+				&& point.y >= source.getY() && point.y <= source.getY() + AerialDefender.ROAM_HEIGHT;
 		if (underwaterPatrol(mob.level(), mob, source))
 			return AllySpawnerManager.insideHorizontal(source, point, radius)
 				&& Math.abs(point.y - source.getY()) <= UNDERWATER_ROAM_HEIGHT;
@@ -54,7 +57,7 @@ public final class DefenderBehavior {
 		return validEnemy(target) && mob.distanceToSqr(target) <= (double) radius * radius;
 	}
 	public static void addGoals(Mob mob, GoalSelector goals, GoalSelector targets) {
-		if (!(mob instanceof DrownedAlly)) goals.addGoal(0, new FloatGoal(mob));
+		if (!(mob instanceof DrownedAlly) && !(mob instanceof AerialDefender)) goals.addGoal(0, new FloatGoal(mob));
 		goals.addGoal(6, new ReturnToGuardGoal(mob));
 		goals.addGoal(7, new WanderAroundSpawnerGoal(mob));
 		goals.addGoal(8, new LookAtPlayerGoal(mob, Player.class, 8));
@@ -86,22 +89,26 @@ public final class DefenderBehavior {
 			nextAttempt = mob.tickCount + 20;
 			int radius = settings(mob).roamRadius();
 			boolean underwater = underwaterPatrol(level, mob, source.pos);
-			int height = underwater ? UNDERWATER_ROAM_HEIGHT : 3;
+			boolean flying = mob instanceof AerialDefender;
+			int height = flying ? AerialDefender.ROAM_HEIGHT : underwater ? UNDERWATER_ROAM_HEIGHT : 3;
+			int minHeight = flying ? 0 : -height;
+			int heightCount = height - minHeight + 1;
 			int pathRadius = insidePatrol(mob, source.pos, mob.position(), radius)
 				? radius : settings(mob).recallRadius();
 			for (int attempt = 0; attempt < 24; attempt++) {
 				int dx = mob.getRandom().nextInt(radius * 2 + 1) - radius;
 				int dz = mob.getRandom().nextInt(radius * 2 + 1) - radius;
 				if (dx * dx + dz * dz > radius * radius) continue;
-				int startHeight = underwater ? mob.getRandom().nextInt(height * 2 + 1) : height * 2;
-				for (int step = 0; step <= height * 2; step++) {
-					int dy = (startHeight - step + height * 2 + 1) % (height * 2 + 1) - height;
+				int startHeight = underwater || flying ? mob.getRandom().nextInt(heightCount) : heightCount - 1;
+				for (int step = 0; step < heightCount; step++) {
+					int dy = (startHeight - step + heightCount) % heightCount + minHeight;
 					BlockPos feet = source.pos.offset(dx, dy, dz);
 					Vec3 destination = Vec3.atBottomCenterOf(feet);
 					if (mob.position().distanceToSqr(destination) < 2.25
 						|| !insidePatrol(mob, source.pos, destination, radius)
 						|| !patrolMedium(mob, feet, underwater)
-						|| !AllySpawnerManager.safe(level, mob, destination)) continue;
+						|| !(flying ? AllySpawnerManager.safeFlight(level, mob, destination)
+							: AllySpawnerManager.safe(level, mob, destination))) continue;
 					Path candidate = mob.getNavigation().createPath(feet, 0);
 					if (candidate == null || !candidate.canReach()) continue;
 					boolean inside = true;
@@ -182,7 +189,7 @@ public final class DefenderBehavior {
 				// Even an incomplete path can walk toward the platform before a later retry finds a route.
 				// Use zero destination tolerance: moveTo(x,y,z) accepts a nearby node, which can leave
 				// the mob at the base of the post. Drop cached partial paths before trying again.
-				if (mob.onGround() || (mob instanceof DrownedAlly && mob.isInWater())) {
+				if (mob.onGround() || mob instanceof AerialDefender || (mob instanceof DrownedAlly && mob.isInWater())) {
 					mob.getNavigation().stop();
 					if (wideStanding) {
 						var route = AllySpawnerManager.standingRoute(level, source, mob);
@@ -190,7 +197,8 @@ public final class DefenderBehavior {
 						mob.getNavigation().moveTo(route == null ? null : route.path(), 1);
 					} else {
 						// Wander only needs to re-enter the patrol area; exact-post Standing must reach the top.
-						int reach = source.standing || mob instanceof DrownedAlly ? 0 : Math.max(0, settings(mob).roamRadius() - 1);
+						int reach = source.standing || mob instanceof DrownedAlly || mob instanceof AerialDefender
+							? 0 : Math.max(0, settings(mob).roamRadius() - 1);
 						Path path = mob.getNavigation().createPath(source.pos.above(), reach,
 							Math.max(32, Math.min(64, settings(mob).recallRadius() * 2)));
 						mob.getNavigation().moveTo(path, 1);
@@ -201,7 +209,8 @@ public final class DefenderBehavior {
 				&& mob.position().distanceToSqr(standingDestination) < 4 && AllySpawnerManager.safe(level, mob, standingDestination)) {
 				// Wide mobs can finish a path just short of the destination column.
 				mob.getMoveControl().setWantedPosition(standingDestination.x, standingDestination.y, standingDestination.z, 1);
-			} else if (source.standing && !wideStanding && mob.blockPosition().equals(source.pos.above())
+			} else if (source.standing && !wideStanding && (mob.blockPosition().equals(source.pos.above())
+				|| mob instanceof AerialDefender && mob.position().distanceToSqr(top) < 1 && AllySpawnerManager.safe(level, mob, top))
 				&& mob.getNavigation().isDone()) {
 				// Navigation may finish within the destination block but off-center. Walk the last few
 				// centimetres through the movement controller rather than teleporting onto the exact center.

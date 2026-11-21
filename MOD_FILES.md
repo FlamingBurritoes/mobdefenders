@@ -23,20 +23,21 @@ Keep this document updated for every project task: describe the behavior, added/
 
 ### Spawner
 
-- Block/item IDs: `mobdefenders:zombie_ally_spawner`, `mobdefenders:skeleton_ally_spawner`, `mobdefenders:spider_ally_spawner`, `mobdefenders:creeper_ally_spawner`, `mobdefenders:enderman_ally_spawner`, `mobdefenders:slime_ally_spawner` and `mobdefenders:drowned_ally_spawner`, all in Functional Blocks. See [SHARED_SPAWNER_RULES.md](SHARED_SPAWNER_RULES.md) for the compiled checklist.
+- All ally spawners are in Functional Blocks. Their block and item IDs correspond to the per-type override keys listed below. See [SHARED_SPAWNER_RULES.md](SHARED_SPAWNER_RULES.md) for the compiled checklist.
 - Registry rename compatibility: old `mobdefenders:zombie_spawner` block/item lookups are redirected to the canonical zombie ID when decoding saves/stacks. New registry keys, models, textures, recipes, loot and translations use `zombie_ally_spawner`. No duplicate old block/item is registered. The old dimension SavedData storage key `mobdefenders:zombie_spawners` is intentionally retained so existing source ownership/deadlines survive; entries now save their kind, defaulting to Zombie Ally for older records.
-- Hard-coded **one owned ally per source** except Slime, which can own up to **eight** split family members. Overlapping sources have separate UUID ownership. There is no configurable cap.
+- Hard-coded **one owned ally per source** except Slime and Magma Cube, which can own up to **eight** and **four** split family members, respectively. Overlapping sources have separate UUID ownership. There is no configurable cap.
 - Default full replacement delay: **90 seconds / 1,800 world ticks**, after confirmed death or permanent discard.
 - Initial placement waits half the configured delay, floored to whole seconds: **45 seconds / 900 ticks** by default. These are half the original timers. Breaking/replacing starts a fresh initial wait. Spawn attempts run once per second, so an attempt may occur up to one second after its deadline.
 - Unloading a chunk/server shutdown is not death. Sources, live UUIDs, mode and deadlines are persisted in dimension SavedData. A missing loaded entity never frees the slot, and nothing force-loads chunks.
 - Right-click opens a server-synchronized menu: **Guard Type:** above one button showing **Standing** or **Wander**. Clicking toggles the current source mode. No inventory, item input or extra buttons. Closing/reopening or restarting retains the selection.
 - **Standing** is the default: spawn centered on the block's top, stay there when idle, engage eligible nearby hostiles, then **pathfind/walk/jump back** after combat. There is no close-range snap or fixed travel-time teleport. Navigation retries once per second, targets the exact top block (zero path tolerance), discards stale partial paths and allows a bounded detour search without changing detection attributes. Movement of at least 0.25 blocks resets the stuck counter. Only **ten continuous seconds without that progress** permits a collision-checked fallback onto a safe top. Long detours can continue without a time limit while making progress. Final centering uses the movement controller, not teleportation. Obstructed top prevents initial Standing spawning; idle return waits/retries until safe. The separate twelve-block emergency recall remains unchanged.
-- **Spider and Slime Standing exception:** hold any supported, dry spot in the **3×3 square** of columns (spawner plus all eight neighbors, including diagonals), with feet within three blocks vertically of the source. Return navigation selects safe candidate positions and stops once the ally is grounded inside. Spawning, emergency recall, stuck fallback and Slime merges prefer the top but can land elsewhere inside the area when the top is blocked.
+- **Spider, Slime and Magma Cube Standing exception:** hold any supported, dry spot in the **3×3 square** of columns (spawner plus all eight neighbors, including diagonals), with feet within three blocks vertically of the source. Return navigation selects safe candidate positions and stops once the ally is grounded inside. Spawning, emergency recall, stuck fallback and family merges prefer the top but can land elsewhere inside the area when the top is blocked.
 - **Wander**: random safe spawn around the source, then actively pathfinds between randomly chosen reachable destinations around that block while idle. If combat takes it outside the patrol area, a higher-priority return goal **walks it back inside as soon as it has no target**, then stops and resumes normal wandering. It does not need to stand on the block. This uses the shared walk-first retries/stuck fallback with a patrol-area destination tolerance. Switching to Standing returns it to its post or species-specific guard area.
 - Default spawn radius **3**, patrol/roam radius **6**, both measured around the source (circular horizontal plus vertical `+/- roamRadius`). Enemy detection is separately **10 blocks from the ally's current position**, using three-dimensional distance and nearest-eligible selection with **no line-of-sight requirement** for acquisition or retention. Walls do not hide enemies, but still block movement/projectiles; normal combat goals handle reaching or getting a clear shot. Vanilla non-LOS checks such as visibility scaling from invisibility are otherwise unchanged. The detector's scan/retention range is explicitly configured, not inherited from the species' follow attributes. Nearby spawn ground is searched within three blocks up/down. Spawn/return needs solid supported dry ground, available chunks, world-border clearance, no collision and no overlapping living entity.
 - The roam range is an **AI patrol/engagement range, not an invisible physics wall**. Knockback/external movement can take the ally outside it. A separate recall radius (**15 blocks** in the current type defaults, overridable in JSON) teleports a stray back to its source in either mode. Between the patrol and recall boundaries, Wander can walk back naturally instead of snapping at the patrol edge. Beyond the recall radius, the block's top is preferred; if obstructed/occupied, a safe supported position in the roam range is used instead. No safe position means retry later without loading chunks or teleporting into solids. Owned allies still cannot use portals/change dimensions.
 - Destroying a source clears ownership first and kills its linked ally normally, retaining death animation/sounds. Unloaded allies enter a saved pending-death queue and die on next load. No other source's ally is affected. Source-break normal death uses Minecraft's ordinary death rules; no custom entity loot table is currently supplied.
 - Placement faces away from the player, as in the current Weed Spawner; rotations retain ownership/mode/timer. Full-cube visual/selection/collision. Dirt-like mining/shovel efficiency and self-drop.
+- Placement and breaking use Oak Planks sounds for ordinary spawners and both reinforced plank blocks. The Brute Ally Spawner and Gold Reinforced Nether Brick instead use Nether Bricks sounds. Mining rules are independent of the sound choice.
 - Successful spawn emits vanilla smoke and spawn animation. Failed attempts do not.
 
 ### Skeleton Ally
@@ -48,6 +49,12 @@ Keep this document updated for every project task: describe the behavior, added/
 - Keeps vanilla wolf-avoidance and bow/melee weapon reassessment; no sun-flee/restrict-sun goals are installed because sunlight is harmless. Powder-snow conversion is disabled to prevent becoming a hostile Stray. No randomized spawn equipment or group-spawn hooks; the supplied bow has zero death-drop chance.
 - Supplied OptiFine-format `skeleton_ally.bbmodel` is translated to a native 64x32 model layer with thin mirrored limbs, exact +/-2 leg pivots and inflated headwear. Uses vanilla skeleton bow/held-item/armor rendering without an OptiFine/GeckoLib dependency.
 - All allies use the same idle patrol pause: **3–5 seconds (60–100 ticks)** after a walk ends. Failed destination searches still retry once per second; combat, Standing return and return into patrol are not delayed.
+
+### Wither Skeleton Ally
+
+- `mobdefenders:wither_skeleton_ally` uses Normal-difficulty combat stats (20 HP, 0.25 movement speed, 8 melee damage with its issued stone sword). Successful sword hits apply **Wither I for 10 seconds** to eligible enemies. It cannot hit or wither players or allied mobs and is itself immune to Wither.
+- Uses the shared Standing/Wander rules, ownership, timers, recall and sunlight safety. Ordinary fire and lava are not covered by the mod's sunlight protection.
+- Uses the supplied 64×32 texture and matching thin-limbed mesh, scaled to the vanilla Wither Skeleton's height, with native sword animations and sounds.
 
 ### Spider Ally
 
@@ -73,6 +80,12 @@ Keep this document updated for every project task: describe the behavior, added/
 - The supplied body, head, inset headwear, mirrored limbs and pivots are baked into the vanilla Enderman animation hierarchy. The original blue eyes are retained rather than overlaid with vanilla purple eyes.
 - Its directional spawner uses shared ownership, timers, Standing/Wander, targeting and cleanup. Its built-in settings are 90 seconds replacement, 3-block spawn, 6-block patrol, 15-block recall and 10-block detection. Existing explicit JSON values still take precedence.
 
+### Piglin Brute Ally
+
+- `mobdefenders:brute_ally` uses vanilla Brute base stats: 50 HP, 0.35 movement speed and 7 base attack damage (13 with its golden axe on Normal). Its issued axe is unbreakable and does not drop, and the ally does not pick up gear.
+- Uses shared hostile filtering, Standing/Wander, pathfinding-first return, timers, one-ally cap, recall and cleanup. No hostile piglin brain or anger propagation. Cannot zombify and is intrinsically immune to fire and lava; other damage still applies. Spawning/patrol destinations retain the shared dry-ground rules.
+- Uses the supplied 64×64 texture, head/ears and layered clothing with vanilla piglin animations and Brute sounds.
+
 ### Drowned Ally
 
 - `mobdefenders:drowned_ally` uses Normal-mode stats (20 HP, 2 armor, 3 melee damage, 0.23 base movement speed), a guaranteed plain trident and no other equipment. No loot pickup, hostile vanilla targeting, turtle/egg hunting, water-seeking, random gear or jockeys. Wears out neither its issued trident nor its stock of throws.
@@ -80,6 +93,24 @@ Keep this document updated for every project task: describe the behavior, added/
 - Waterloggable `mobdefenders:drowned_ally_spawner` supports safe spawn/recall under water while retaining the shared one-ally lifecycle. Standing holds the post immediately above the block. Wander stays in the post's medium, with the configured horizontal patrol radius and a maximum of **7 blocks above or below the spawner block** while swimming. Combat pursuit is still subject to normal recall rather than the idle swimming bound.
 - Like vanilla Drowned, Drowned Allies breathe underwater indefinitely and do not lose air while submerged.
 - Uses the supplied inner/outer 64×64 textures and model geometry with native swim, walk and trident animations.
+
+### Ghast Ally
+
+- `mobdefenders:ghast_ally` uses the supplied 32×16 texture, small model and its two-second keyframed tentacle loop instead of vanilla Ghast animation. It has the matching small hitbox, vanilla 10 HP, flight speed and fire immunity.
+- Shares the Blaze's aerial guard rules: exact Standing post; Wander flies from spawner height up to seven blocks above it within the usual horizontal radius.
+- Charges and launches large fireballs with vanilla timing, 6 direct damage and explosion power 1. Direct hits and blast effects are limited to eligible hostiles; the fireball cannot destroy blocks or items, start fires or knock back allies. Safety is tied to the projectile type, so losing or changing its owner does not remove it.
+
+### Blaze Ally
+
+- `mobdefenders:blaze_ally` has 20 HP, 6 melee damage and 0.23 base movement speed. It fires the normal three-small-fireball burst (5 direct damage per shot and 5 seconds of burning). Shots filter out friendly/passive targets and Creepers, respect obstacles, and cannot place fire on blocks.
+- Follows the shared spawner and guard rules. Standing holds the post above the block. Wander uses the shared horizontal radius and can fly from spawner height to **seven blocks above it**. The altitude band applies when idle; combat uses the shared emergency recall.
+- Immune to contact damage from rain and water, splash water bottles, and snowballs. It also retains vanilla fire, lava and fall-damage immunity, and does not lose air underwater. Uses the supplied textures with the native orbiting rod animation.
+
+### Magma Cube Ally
+
+- `mobdefenders:magma_cube_ally` uses the supplied texture on the matching native segmented model and keeps native Magma Cube hopping, squish, glow, sounds and fire/lava immunity. It has no innate armor, like the Slime Ally. The spawner uses Oak Planks sounds and normal dry ground rules.
+- Size tiers are **large** (22 HP, 8 melee damage), **medium** (12 HP, 5 damage), and **small** (7 HP, 2.5 damage). A successful melee hit at any tier has a **33%** chance to ignite a non-fire-immune enemy for **five seconds**. Blocked or rejected hits do not roll.
+- Shares Slime's roster, guard and family lifecycle, but skips semi-large: `1 → 2 → 4`. The last death starts the replacement wait. At least two survivors merge after 20 uninterrupted seconds without an enemy, at `22 × Σ(weight × current HP / max HP) ÷ 4`, clamped to 1–22. Weights are 4/2/1 for large/medium/small.
 
 ### Slime Ally
 
@@ -102,6 +133,54 @@ Keep this document updated for every project task: describe the behavior, added/
 ### Recipes
 
 Each recipe outputs **one** block.
+
+Wither Skeleton Ally Spawner (`B` = Bone, `C` = Coal, `G` = Gold Reinforced Nether Brick):
+
+```text
+BCB
+CGC
+BCB
+```
+
+Ghast Ally Spawner (`T` = Ghast Tear, `U` = Gunpowder, `G` = Gold Reinforced Nether Brick):
+
+```text
+TUT
+UGU
+TUT
+```
+
+Blaze Ally Spawner (`B` = Blaze Rod, `G` = Gold Reinforced Nether Brick):
+
+```text
+BBB
+BGB
+BBB
+```
+
+Magma Cube Ally Spawner (`M` = Magma Cream, `G` = Gold Reinforced Nether Brick):
+
+```text
+MMM
+MGM
+MMM
+```
+
+Gold Reinforced Nether Brick (`G` = Gold Ingot, `N` = the Nether Brick **item**, not the Nether Bricks block). The result is a full-cube Building Blocks item with Nether Bricks mining properties:
+
+```text
+GGG
+GNG
+GGG
+```
+
+Brute Ally Spawner (`M` = Gold Nugget, `A` = Golden Axe, `N` = Gold Reinforced Nether Brick, `G` = Gold Block):
+
+```text
+MAM
+MNM
+MGM
+```
 
 Drowned Ally Spawner (`C` = any coral, including live/dead plants, fans and blocks; `F` = Rotten Flesh; `I` = Iron Reinforced Planks):
 
@@ -195,7 +274,7 @@ Created at `config/mobdefenders.json` on server/world startup. Settings resolve 
 }
 ```
 
-Valid override keys: `zombie_ally_spawner`, `skeleton_ally_spawner`, `spider_ally_spawner`, `creeper_ally_spawner`, `enderman_ally_spawner`, `slime_ally_spawner`, `drowned_ally_spawner` (optionally prefixed `mobdefenders:`). Any/all five settings can be overridden independently. Empty shared/type objects do not erase species defaults.
+Valid override keys: `zombie_ally_spawner`, `skeleton_ally_spawner`, `spider_ally_spawner`, `creeper_ally_spawner`, `enderman_ally_spawner`, `slime_ally_spawner`, `drowned_ally_spawner`, `brute_ally_spawner`, `magma_cube_ally_spawner`, `blaze_ally_spawner`, `ghast_ally_spawner`, `wither_skeleton_ally_spawner` (optionally prefixed `mobdefenders:`). Any/all five settings can be overridden independently. Empty shared/type objects do not erase species defaults.
 
 **To change each species' built-in defaults in Java**, edit `defaults(SpawnerKind kind)` in `src/main/java/net/amemah/mobdefenders/config/AllySpawnerConfig.java`. Each switch arm has its own `new Settings(replacementSeconds, spawnRadius, patrolRadius, recallRadius, detectionRadius)`. The current species arms use `90, 3, 6, 15, 10` except Creeper, which uses a 60-second replacement delay. Changing one arm affects that species wherever JSON does not explicitly override the field. Rebuild/install the JAR and restart. Initial wait remains half the resulting replacement delay.
 
@@ -225,9 +304,20 @@ Source art is in `../Useful Vanilla Textures/mobdefenders/` (outside this mod pr
 | `enderman ally/enderman_ally.bbmodel` | `client/EndermanAllyModel.java` and `textures/entity/enderman_ally.png` |
 | `enderman ally/enderman_ally_spawner.bbmodel` | `models/block/enderman_ally_spawner.json` and `textures/block/enderman_ally_spawner.png` |
 | `slime ally/slime_ally.bbmodel` | `client/SlimeAllyModel.java` and `textures/entity/slime_ally.png` |
+| `magma cube ally/magma_cube_ally.bbmodel` | Native `MagmaCubeModel`, `client/MagmaCubeAllyRenderer.java` and `textures/entity/magma_cube_ally.png` |
+| `magma cube ally/magma_cube_ally_spawner.bbmodel` | `models/block/magma_cube_ally_spawner.json` and `textures/block/magma_cube_ally_spawner.png` |
+| `blaze ally/blaze_ally.bbmodel` | Native `BlazeModel`, `client/BlazeAllyRenderer.java` and `textures/entity/blaze_ally.png` |
+| `blaze ally/blaze_ally_spawner.bbmodel` | `models/block/blaze_ally_spawner.json` and `textures/block/blaze_ally_spawner.png` |
+| `ghast ally/ghast_ally.bbmodel` | `client/GhastAllyModel.java` (geometry and idle clip) and `textures/entity/ghast_ally.png` |
+| `ghast ally/ghast_ally_spawner.bbmodel` | `models/block/ghast_ally_spawner.json` and `textures/block/ghast_ally_spawner.png` |
+| `wither skeleton ally/wither_skeleton_ally.bbmodel` | Matching `client/SkeletonAllyModel.java` mesh, `client/WitherSkeletonAllyRenderer.java` and `textures/entity/wither_skeleton_ally.png` |
+| `wither skeleton ally/wither_skeleton_ally_spawner.bbmodel` | `models/block/wither_skeleton_ally_spawner.json` and `textures/block/wither_skeleton_ally_spawner.png` |
 | `slime ally/slime_ally_spawner.bbmodel` | `models/block/slime_ally_spawner.json` and `textures/block/slime_ally_spawner.png` |
 | `drowned ally/drowned_ally.bbmodel` | `client/DrownedAllyModel.java` and `textures/entity/drowned_ally_{inner,outer}.png` |
 | `drowned ally/drowned_ally_spawner.bbmodel` | `models/block/drowned_ally_spawner.json` and `textures/block/drowned_ally_spawner.png` |
+| `brute ally/brute_ally.bbmodel` | `client/BruteAllyModel.java` and `textures/entity/brute_ally.png` |
+| `brute ally/brute_ally_spawner.bbmodel` | `models/block/brute_ally_spawner.json` and `textures/block/brute_ally_spawner.png` |
+| `gold_reinforced_nether_brick.bbmodel` | `models/block/gold_reinforced_nether_brick.json` and `textures/block/gold_reinforced_nether_brick.png` |
 | `copper_reinorced_plank.bbmodel` (original filename typo retained) | `models/block/copper_reinforced_planks.json` and `textures/block/copper_reinforced_plank.png` |
 
 - The zombie is an **OptiFine CEM-format** Blockbench project, but its seven cubes and standard pivots need no OptiFine runtime. Native conversion uses `(-x, 24-y, z)` coordinates, a 64x64 texture, original box-UV offsets and mirrored left arm/leg regions. It preserves the exact supplied leg bounds around the +/-1.9 pivots, rather than silently substituting vanilla's slightly shifted bounds.
@@ -520,3 +610,44 @@ Under `src/main/resources/`:
 - Added `data/minecraft/tags/entity_type/can_breathe_under_water.json` to opt the custom Drowned Ally type into Minecraft's underwater breathing without changing its other entity-type traits. This applies to existing and new allies. No asset, configuration or save changes.
 - Added a Standing regression in `DrownedAllySpawnerGameTests.java` that keeps the guard submerged past the normal air limit and checks its air and health.
 - Verification: full build passed with **28 JUnit tests and 66 server GameTests**, including 20 seconds continuously submerged without air or health loss.
+
+### 2026-11-21 — Piglin Brute Ally and Gold Reinforced Nether Brick
+
+- Added `BruteAlly.java` and registered the entity, directional spawner and building block in `ModContent.java`. Extended `SpawnerKind.java` and `AllySpawnerConfig.java` with standard Brute defaults. Existing configurations and save formats are unchanged; fire/lava immunity is specific to the Brute.
+- Added `BruteAllyModel.java`, `BruteAllyRenderer.java` and client registration, and copied the three supplied textures. Added block/item models, loot, recipes, translations and mining tags.
+- Added `BruteAllySpawnerGameTests.java` for the shared lifecycle, axe combat and stats, fire/lava/conversion immunity, and both recipes. Added `BruteAllyModelTest.java` for the baked geometry and native attack pose. Extended the facing, config and daylight fixtures.
+- Verification: full build passed with **29 JUnit tests and 69 server GameTests**. All 68 source JSON files parse. The release JAR contains both recipes and all three supplied textures, each matching the source and embedded PNGs byte-for-byte. Whitespace checks passed. Client visuals were not checked in-game.
+
+### 2026-11-21 — Block placement and breaking sounds
+
+- Updated spawner properties in `ModContent.java` to use Oak Planks sounds, except the Brute Ally Spawner, which uses Nether Bricks. Copper and Iron Reinforced Planks already use Oak Planks sounds; Gold Reinforced Nether Brick already uses Nether Bricks. Mining behavior, recipes, assets and save data are unchanged.
+- Added a regression in `BruteAllySpawnerGameTests.java` that compares every mod block's place and break events with its vanilla reference, including the waterlogged Drowned Spawner.
+- Verification: full build passed with **29 JUnit tests and 70 server GameTests**, including the sound regression.
+
+### 2026-11-21 — Magma Cube Ally and split family
+
+- Added `MagmaCubeAlly.java`, its registration/config and directional spawner with the requested recipe, supplied textures, native segmented renderer, translations and mining tag.
+- Extracted the shared hopping/contact goal to `CubeAllyBehavior.java`; generalized the former `SlimeFamily.java` as `CubeFamily.java`, including roster serialization, death/split handling and quiet merging. Slime sizes, split/merge weights and save format are unchanged.
+- Added `MagmaCubeAllyGameTests.java` for tier stats, burn chance and duration, split roster persistence, replacement, mixed-tier merging and recipe. Extended shared config, model-facing and daylight fixtures.
+- Verification: full build passed with **29 JUnit tests and 74 server GameTests**, including the existing Slime regressions. All 73 source JSON files parse. Both supplied textures match the embedded Blockbench PNGs and the copies in the release JAR. Release and whitespace checks passed. Client visuals were not checked in-game.
+
+### 2026-11-21 — Blaze Ally and aerial patrol
+
+- Added `BlazeAlly.java`, `BlazeAllyRenderer.java`, directional spawner, registration, config, requested recipe, supplied textures, translations and mining tag. Added a fall-damage immunity tag and `FriendlyFireballMixin.java` for no terrain ignition by allied fireballs.
+- Extended shared guard navigation, safe placement and recall with a Blaze flight band; ground and Drowned movement rules are unchanged.
+- Added `BlazeAllySpawnerGameTests.java` for aerial patrol, return and altitude bounds, water and snowball immunity, fireball combat and block safety, and the recipe. Extended shared config, model-facing and daylight fixtures.
+- Verification: full build passed with **29 JUnit tests and 80 server GameTests**. All 79 source JSON files parse. Both supplied textures match the embedded Blockbench PNGs and the release JAR. Release contents and whitespace checks passed. Client visuals were not checked in-game.
+
+### 2026-11-21 — Ghast Ally and protected fireball
+
+- Added `GhastAlly.java`, `GhastAllyFireball.java`, the directional spawner, registry and config entries, recipe, supplied assets, translations and mining/fall-damage tags. The center ingredient uses the existing Gold Reinforced Nether Brick.
+- Extracted `AerialDefender.java` from the Blaze flight rules and `DefenderExplosion.java` from the Creeper ally blast filter. Existing spawner IDs, config and save formats are unchanged.
+- Added `GhastAllyModel.java` and `GhastAllyRenderer.java` for the supplied geometry and keyframed idle animation, and added model and server regressions.
+- Verification: full build passed with **30 JUnit tests and 84 server GameTests**, including keyframe playback, aerial patrol, hostile fireball hits and collateral protection. All 84 source JSON files parse. Both supplied textures match the embedded Blockbench PNGs and the release JAR. Release contents and whitespace checks passed. Client visuals were not checked in-game.
+
+### 2026-11-21 — Wither Skeleton Ally
+
+- Added `WitherSkeletonAlly.java` with native stone-sword combat and enemy-only Wither, `WitherSkeletonAllyRenderer.java` with a vanilla-scaled layer of the matching Skeleton Ally mesh, and the supplied directional spawner and textures.
+- Updated entity, block, renderer and configuration registrations; added recipe, loot, language and shovel tag entries. Existing configs, saves and other allies are unchanged.
+- Added `WitherSkeletonAllySpawnerGameTests.java` for Normal stats, real melee and Wither, friendly exclusions, return/replacement and crafting. Extended shared config, daylight and model-facing fixtures.
+- Verification: full build passed with **30 JUnit tests and 86 server GameTests**. The sword deals 8 damage before Wither ticks. All 89 source JSON files parse, both supplied textures match the embedded Blockbench PNGs and release JAR, and whitespace checks passed. Client visuals were not checked in-game.

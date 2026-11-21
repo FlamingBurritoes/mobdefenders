@@ -11,14 +11,6 @@ import net.minecraft.world.level.*;
 
 /** Vanilla creeper stats/fuse/chase, shared guard AI and a hostile-only, terrain-safe blast. */
 public final class CreeperAlly extends Creeper implements Defender {
-	private static final ExplosionDamageCalculator SAFE_BLAST = new ExplosionDamageCalculator() {
-		private boolean eligible(Entity entity) {
-			return entity instanceof LivingEntity living && DefenderBehavior.validEnemy(living);
-		}
-		@Override public boolean shouldDamageEntity(Explosion explosion, Entity entity) { return eligible(entity); }
-		@Override public float getKnockbackMultiplier(Entity entity) { return eligible(entity) ? 1 : 0; }
-	};
-
 	public CreeperAlly(EntityType<? extends Creeper> type, Level level) {
 		super(type, level);
 		setPersistenceRequired();
@@ -39,7 +31,7 @@ public final class CreeperAlly extends Creeper implements Defender {
 	public void explodeSafely(int radius) {
 		if (!(level() instanceof ServerLevel level)) return;
 		dead = true;
-		level.explode(this, null, SAFE_BLAST, getX(), getY(), getZ(),
+		level.explode(this, null, DefenderExplosion.HOSTILES_ONLY, getX(), getY(), getZ(),
 			radius * (isPowered() ? 2F : 1F), false, Level.ExplosionInteraction.NONE);
 		// Do not leave an unfiltered potion cloud or secondary death-effect blast near friends.
 		// Permanent discard is observed by the shared manager and starts the replacement timer.

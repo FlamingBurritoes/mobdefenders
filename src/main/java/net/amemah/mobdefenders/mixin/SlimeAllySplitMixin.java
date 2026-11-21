@@ -1,7 +1,7 @@
 package net.amemah.mobdefenders.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.amemah.mobdefenders.entity.SlimeAlly;
+import net.amemah.mobdefenders.entity.Defender;
 import net.minecraft.world.entity.monster.Slime;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,6 +12,6 @@ public abstract class SlimeAllySplitMixin {
 	@ModifyExpressionValue(method = "remove", at = @At(value = "INVOKE",
 		target = "Lnet/minecraft/world/entity/monster/Slime;getSize()I"))
 	private int mobdefenders$skipVanillaAllySplit(int size) {
-		return (Object) this instanceof SlimeAlly ? 1 : size;
+		return (Object) this instanceof Defender ? 1 : size;
 	}
 }

@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["BCB", "CGC", "BCB"],
+  "key": {"B": "minecraft:bone", "C": "minecraft:coal", "G": "mobdefenders:gold_reinforced_nether_brick"},
+  "result": {"id": "mobdefenders:wither_skeleton_ally_spawner", "count": 1}
+}

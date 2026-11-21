@@ -32,6 +32,11 @@ public class AllySpawnerConfigGameTests {
 					case ENDERMAN_ALLY -> new AllySpawnerConfig.Settings(100, 3, 6, 15, 12);
 					case SLIME_ALLY -> new AllySpawnerConfig.Settings(80, 3, 6, 15, 11);
 					case DROWNED_ALLY -> new AllySpawnerConfig.Settings(100, 3, 6, 15, 10);
+					case BRUTE_ALLY -> new AllySpawnerConfig.Settings(120, 3, 6, 15, 10);
+					case MAGMA_CUBE_ALLY -> new AllySpawnerConfig.Settings(110, 3, 6, 15, 10);
+					case BLAZE_ALLY -> new AllySpawnerConfig.Settings(130, 3, 6, 15, 10);
+					case GHAST_ALLY -> new AllySpawnerConfig.Settings(140, 3, 6, 15, 10);
+					case WITHER_SKELETON_ALLY -> new AllySpawnerConfig.Settings(150, 3, 6, 15, 10);
 				}) : AllySpawnerConfig.parseConfiguration("""
 					{"spawners":{
 					 "zombie_ally_spawner":{"respawnDelaySeconds":20,"detectionRadius":4},

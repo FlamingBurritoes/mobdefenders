@@ -20,6 +20,11 @@ class AllySpawnerConfigTest {
 			case ENDERMAN_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
 			case SLIME_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
 			case DROWNED_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
+			case BRUTE_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
+			case MAGMA_CUBE_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
+			case BLAZE_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
+			case GHAST_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
+			case WITHER_SKELETON_ALLY -> new AllySpawnerConfig.Settings(90, 3, 6, 15, 10);
 		};
 	}
 	@Test void absentEntriesUseEachSpeciesCodeDefaultsNotOneGlobalRecord() {
